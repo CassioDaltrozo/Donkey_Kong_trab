@@ -7,6 +7,10 @@
 *.obj
 *.elf
 
+#vscode e pasta de exetuvais do linux
+.vscode/
+build/
+
 # Linker output
 *.ilk
 *.map
