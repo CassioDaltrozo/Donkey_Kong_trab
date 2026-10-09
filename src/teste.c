@@ -3,7 +3,7 @@
 
 int main(){
     printf("teste.\n");
-    InitWindow(300,300,"TESTE2222");
+    InitWindow(300,300,"TESTE_FINAL_MITO2");
     
     while(!WindowShouldClose()){
         BeginDrawing();
