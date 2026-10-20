@@ -1,0 +1,30 @@
+                              
+         F          D         
+   ZZZZZZZZZZZZZZZZZHZZZZZZZ  
+                    H         
+                    H         
+                 E  S     
+ZZZZZZZZZZZZZZZZZZZZZZZZZZZ   
+          D           D       
+          H           H       
+          H           H       
+          H           H       
+    D     S           S  E  D 
+ZZZZHZZZZZZZZZZ    ZZZZZZZZZHZ
+    H                       H 
+    H                       H 
+    S D    D                S 
+ ZZZZZHZ  ZHZZZZZZZZZZZZZZZZZZ
+      H    H                  
+      H    H                  
+ D    S    S          D       
+ZHZZZZZZ  ZZZZZZZZZZZZHZZZZZZ 
+ H                    H       
+ H                    H       
+ S      E      D      S     D 
+ZZZZZZZZZZZZZZZHZZZZZZZZZZZZH 
+               H            H 
+               H            H 
+  P            S            S 
+ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+                              
