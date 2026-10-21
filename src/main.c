@@ -9,7 +9,7 @@ int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
 
 int main()
 {
-    int i, j;
+    int i, j, linhaJogador, colunaJogador;
     char mapa[LINHAS][COLUNAS];
 
     // Chama a funcao de carregamento do mapa, e caso ela seja falsa, encerra o programa
@@ -17,6 +17,19 @@ int main()
     {
         printf("Mapa carregou errado!\n");
         return 0;
+    }
+
+    // Guarda a posicao inicial do jogador, sem usar struct por enquanto
+    for (i = 0; i < LINHAS; i++)
+    {
+        for (j = 0; j < COLUNAS; j++)
+        {
+            if (mapa[i][j] == 'P')
+            {
+                linhaJogador = i;
+                colunaJogador = j;
+            }
+        }
     }
 
     // Inicializa a janela, com as config abaixo
@@ -77,7 +90,7 @@ int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
     char linha[COLUNAS + 2];
     int i, j;
 
-    // Abre o arquivo e faz a leitura(r) dele, caso seja nulo, termina a funcao retornando 0
+    // Abre(fopen) o arquivo e faz a leitura(r) dele, caso seja nulo, termina a funcao retornando 0
     arq = fopen(nomeArquivo, "r");
     if (arq == NULL)
     {
