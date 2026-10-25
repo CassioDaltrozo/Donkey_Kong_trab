@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define TAM_TILE 32.0f
+#define TAM_TILE 35.0f
 #define COLUNAS 30
 #define LINHAS 30
 
@@ -39,7 +39,7 @@ int main(){
         .is_grounded = true,
         .velocity = {0.0f, 0.0f},
         .speed = 200.0f,
-        .jump_force = -400.0f,
+        .jump_force = -330.0f,
     };
 
     Enemy exam = {
@@ -124,11 +124,13 @@ int main(){
                     }
                 }
 
-                if (!player.is_grounded && current_state != JUMPING && current_state != ATTACKING) {
-                    current_state = JUMPING;
-                } else if (player.is_grounded && current_state == JUMPING) {
-                    current_state = IDLE;
+            if ((current_state != ATTACKING || current_anim->current_frame == current_anim->last_frame) && player.is_grounded && player.velocity.x == 0.0f) {
+                current_state = IDLE;
                 }
+            }
+            else{
+                if(IsKeyPressed(KEY_R))
+                    player.alive = true;
             }
 
         player.position.x += player.velocity.x * delta_time;
@@ -148,6 +150,14 @@ int main(){
                             player.position.y = (i * TAM_TILE) - RENDER_SIZE; 
                             player.velocity.y = 0.0f;
                             player.is_grounded = true;
+                        }
+                    }
+                }
+                if (mapa[i][j] == ' ') {
+                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+                    if (CheckCollisionRecs(player_hitbox, tileRect)) {
+                        if (player.velocity.y == 0) {
+                            player.is_grounded = false;
                         }
                     }
                 }
@@ -198,10 +208,14 @@ int main(){
         }
 
         switch (current_state) {
-            case IDLE:      current_anim = &anim_idle; break;
-            case RUNNING:   current_anim = &anim_run; break;
-            case JUMPING:   current_anim = &anim_jump; break;
-            case ATTACKING: current_anim = &anim_attack; break;
+            case IDLE:      
+                current_anim = &anim_idle; break;
+            case RUNNING:   
+                current_anim = &anim_run; break;
+            case JUMPING:   
+                current_anim = &anim_jump; break;
+            case ATTACKING: 
+                current_anim = &anim_attack; break;
         }
 
         if (player.alive) {
@@ -272,6 +286,7 @@ int main(){
     CloseWindow();
     return 0;
 }
+
 
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
 {
