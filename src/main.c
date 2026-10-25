@@ -1,120 +1,354 @@
-#include <stdio.h>
 #include "raylib.h"
+#include <stdbool.h>
+#include <stdio.h>
 
-#define TAM_TILE 20
+#define TAM_TILE 32.0f
 #define COLUNAS 30
 #define LINHAS 30
 
-int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
+// Tamanho de cada frame dentro do ficheiro da imagem original (ex: 256x256 por frame)
+#define FRAME_WIDTH 256.0f
+#define FRAME_HEIGHT 256.0f
 
-int main()
-{
-    int i, j, linhaJogador, colunaJogador;
+// Tamanho visual e de colisão no ecrã (igual ao bloquinho do mapa: 32x32)
+#define RENDER_SIZE 32.0f
+
+typedef struct GameSettings{
+    int screen_width;
+    int screen_height;
+    int target_fps;
+    float gravity;
+} GameSettings;
+
+typedef struct PlayerSettings{
+    float speed;
+    float jump_force;
+    Vector2 velocity;
+    Vector2 position;
+    bool is_grounded;
+    bool alive;
+} PlayerSettings;
+
+typedef enum PlayerState {
+    IDLE,
+    RUNNING,
+    JUMPING,
+    ATTACKING
+} PlayerState;
+
+typedef enum Direction{
+    LEFT = -1,
+    RIGHT = 1,
+} Direction;
+
+typedef enum AnimationType{
+    REPEATING = 1,
+    ONESHOT = 2, 
+} AnimationType;
+
+typedef struct Animation{
+    int first_frame;
+    int last_frame;
+    int current_frame;
+    int step;
+    float speed;
+    float duration_left;
+    AnimationType type;
+} Animation;
+
+typedef struct Enemy {
+    Vector2 position;
+    Vector2 velocity;
+    float speed;
+    bool is_grounded;
+    bool alive;
+} Enemy;
+
+// Assinaturas de funções
+int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
+void animation_update(Animation *self);
+void reset_animation(Animation *self);
+Rectangle animation_frame(Animation *self, int num_frames_per_row);
+
+int main(){
     char mapa[LINHAS][COLUNAS];
 
-    // Chama a funcao de carregamento do mapa, e caso ela seja falsa, encerra o programa
     if (carregaMapa("maps/mapa1.txt", mapa) == 0)
     {
-        printf("Mapa carregou errado!\n");
+        printf("Erro ao carregar o mapa!\n");
         return 0;
     }
 
-    // Guarda a posicao inicial do jogador, sem usar struct por enquanto
-    for (i = 0; i < LINHAS; i++)
+    GameSettings settings = {
+        .screen_width = (int)(COLUNAS * TAM_TILE),
+        .screen_height = (int)(LINHAS * TAM_TILE),
+        .target_fps = 60,
+        .gravity = 1200.0f,
+    };
+
+    PlayerSettings player = {
+        .alive = true,
+        .is_grounded = true,
+        .velocity = {0.0f, 0.0f},
+        .speed = 200.0f,
+        .jump_force = -400.0f,
+    };
+
+    Enemy exam = {
+        .velocity = {0.0f, 0.0f},
+        .speed = 80.0f,
+        .is_grounded = false,
+        .alive = true
+    };
+
+    Direction exam_direction = LEFT;
+
+    // Posicionamento inicial com base na matriz do mapa
+    for (int i = 0; i < LINHAS; i++)
     {
-        for (j = 0; j < COLUNAS; j++)
+        for (int j = 0; j < COLUNAS; j++)
         {
             if (mapa[i][j] == 'P')
             {
-                linhaJogador = i;
-                colunaJogador = j;
+                player.position = (Vector2){j * TAM_TILE, i * TAM_TILE};
+                mapa[i][j] = ' '; 
+            }
+            else if (mapa[i][j] == 'E')
+            {
+                exam.position = (Vector2){j * TAM_TILE, i * TAM_TILE};
+                mapa[i][j] = ' ';
             }
         }
     }
 
-    // Inicializa a janela, com as config abaixo
-    InitWindow(COLUNAS * TAM_TILE, LINHAS * TAM_TILE, "Donkey Kong do RU");
-    SetTargetFPS(60);
+    // Inicialização das Animações
+    Animation anim_idle   = { .first_frame = 0, .last_frame = 3, .current_frame = 0, .step = 1, .speed = 0.15f, .duration_left = 0.15f, .type = REPEATING };
+    Animation anim_run    = { .first_frame = 4, .last_frame = 7, .current_frame = 4, .step = 1, .speed = 0.08f, .duration_left = 0.08f, .type = REPEATING };
+    Animation anim_jump   = { .first_frame = 8, .last_frame = 11, .current_frame = 11, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT };
+    Animation anim_attack = { .first_frame = 12, .last_frame = 15, .current_frame = 12, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT };
 
-    // Laco enquanto a janela estiver aberta
-    while (!WindowShouldClose())
-    {
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-        // 2 for para percorrer a matriz e desenhar as coisas nas respectivas posicoes
-        for (i = 0; i < LINHAS; i++)
-        {
-            for (j = 0; j < COLUNAS; j++)
-            {
-                // Desenha as plataformas
-                if (mapa[i][j] == 'Z')
-                {
-                    DrawRectangle(j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE, GRAY);
+    PlayerState current_state = IDLE;
+    PlayerState previous_state = IDLE;
+    Direction player_direction = RIGHT;
+    Animation *current_anim = &anim_idle;
+
+    InitWindow(settings.screen_width, settings.screen_height, "Donkey Kong do RU");
+    SetTargetFPS(settings.target_fps);
+
+    Texture2D player_text = LoadTexture("assets/jogador/jogador.png");
+    Texture2D exam_text = LoadTexture("assets/inimigos/inimigoteste.png");
+
+    while(!WindowShouldClose()){
+        float delta_time = GetFrameTime();
+        previous_state = current_state;
+
+        // 1. Lógica e Controles do Jogador
+        if (player.alive) {
+            player.velocity.x = 0.0f;
+
+            if (!player.is_grounded) {
+                player.velocity.y += settings.gravity * delta_time;
+            }
+
+            if (IsKeyPressed(KEY_J)) {
+                current_state = ATTACKING;
+            } 
+
+            if (IsKeyDown(KEY_SPACE) && player.is_grounded) {
+                player.velocity.y = player.jump_force;
+                player.is_grounded = false;
+                current_state = JUMPING;
+            } 
+
+            if (IsKeyDown(KEY_A) || IsKeyDown(KEY_D)) {
+                if (player.is_grounded) current_state = RUNNING;
+                    if (IsKeyDown(KEY_A)){
+                        player.velocity.x = -player.speed;
+                        player_direction = LEFT;
+                    }
+                    if (IsKeyDown(KEY_D)){
+                        player.velocity.x = player.speed;
+                        player_direction = RIGHT;
+                    }
+                } else {
+                    if (player.is_grounded && current_state == RUNNING) {
+                        current_state = IDLE;
+                    }
                 }
 
-                // Desenha o personagem
-                else if (mapa[i][j] == 'P')
-                {
-                    DrawRectangle(j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE, BLUE);
+                if (!player.is_grounded && current_state != JUMPING && current_state != ATTACKING) {
+                    current_state = JUMPING;
+                } else if (player.is_grounded && current_state == JUMPING) {
+                    current_state = IDLE;
                 }
+            }
 
-                // Desenha os inimigos
-                else if (mapa[i][j] == 'E')
-                {
-                    DrawRectangle(j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE, RED);
-                }
+        player.position.x += player.velocity.x * delta_time;
+        player.position.y += player.velocity.y * delta_time;
 
-                // Desenha as escadas
-                else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D')
-                {
-                    DrawRectangle(j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE, GREEN);
-                }
+        // Hitboxes proporcionais ao tamanho de 32x32
+        Rectangle player_hitbox = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
+        Rectangle exam_hitbox = {0};
 
-                // Desenha a saida do nivel
-                else if (mapa[i][j] == 'F')
-                {
-                    DrawRectangle(j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE, YELLOW);
+        // 2. Colisão do Jogador com o mapa ('Z')
+        for (int i = 0; i < LINHAS; i++) {
+            for (int j = 0; j < COLUNAS; j++) {
+                if (mapa[i][j] == 'Z') {
+                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+                    if (CheckCollisionRecs(player_hitbox, tileRect)) {
+                        if (player.velocity.y >= 0) {
+                            player.position.y = (i * TAM_TILE) - RENDER_SIZE; 
+                            player.velocity.y = 0.0f;
+                            player.is_grounded = true;
+                        }
+                    }
                 }
             }
         }
+
+        // 3. Lógica e Colisão do Inimigo com o mapa
+        if (exam.alive) {
+            exam.velocity.x = exam.speed * exam_direction;
+
+            if (!exam.is_grounded) {
+                exam.velocity.y += settings.gravity * delta_time;
+            }
+
+            exam.position.x += exam.velocity.x * delta_time;
+            exam.position.y += exam.velocity.y * delta_time;
+
+            exam_hitbox = (Rectangle){exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
+
+            for (int i = 0; i < LINHAS; i++) {
+                for (int j = 0; j < COLUNAS; j++) {
+                    if (mapa[i][j] == 'Z') {
+                        Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+                        if (CheckCollisionRecs(exam_hitbox, tileRect)) {
+                            if (exam.velocity.y >= 0) {
+                                exam.position.y = (i * TAM_TILE) - RENDER_SIZE;
+                                exam.velocity.y = 0.0f;
+                                exam.is_grounded = true;
+                            }
+                        }
+                        else
+                            exam.is_grounded = false;
+                    }
+                }
+            }
+
+            if (exam.position.x <= 0 || exam.position.x >= (COLUNAS * TAM_TILE - RENDER_SIZE)) {
+                exam_direction *= -1;
+            }
+
+            if (player.alive && CheckCollisionRecs(player_hitbox, exam_hitbox)) {
+                if (current_state == ATTACKING) {
+                    exam.alive = false;
+                } else {
+                    player.alive = false;
+                }
+            }
+        }
+
+        switch (current_state) {
+            case IDLE:      current_anim = &anim_idle; break;
+            case RUNNING:   current_anim = &anim_run; break;
+            case JUMPING:   current_anim = &anim_jump; break;
+            case ATTACKING: current_anim = &anim_attack; break;
+        }
+
+        if (player.alive) {
+            if (current_state != previous_state) {
+                reset_animation(current_anim);
+            }
+            animation_update(current_anim);
+        }
+
+        // --- RENDERIZAÇÃO ---
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        // Desenha os elementos do mapa
+        for (int i = 0; i < LINHAS; i++) {
+            for (int j = 0; j < COLUNAS; j++) {
+                if (mapa[i][j] == 'Z') {
+                    DrawRectangle((int)(j * TAM_TILE), (int)(i * TAM_TILE), (int)TAM_TILE, (int)TAM_TILE, GRAY);
+                } else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D') {
+                    DrawRectangle((int)(j * TAM_TILE), (int)(i * TAM_TILE), (int)TAM_TILE, (int)TAM_TILE, GREEN);
+                } else if (mapa[i][j] == 'F') {
+                    DrawRectangle((int)(j * TAM_TILE), (int)(i * TAM_TILE), (int)TAM_TILE, (int)TAM_TILE, YELLOW);
+                }
+            }
+        }
+
+        // Desenha o Jogador
+        if (player.alive) {
+            Rectangle player_frame = animation_frame(current_anim, 4);
+            if (player_direction == LEFT) {
+                player_frame.width = -player_frame.width;
+            }
+            DrawTexturePro(
+                player_text, 
+                player_frame,   
+                (Rectangle){player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE},
+                (Vector2){0.0f, 0.0f},
+                0.0f, 
+                WHITE
+            );
+            DrawRectangleLines((int)player_hitbox.x, (int)player_hitbox.y, (int)player_hitbox.width, (int)player_hitbox.height, GREEN);
+        } else {
+            DrawText("VOCE MORREU! Pressione R para reiniciar", 150, 450, 20, RED);
+        }
+
+        // Desenha o Inimigo
+        if (exam.alive) {
+            Rectangle exam_frame = {0.0f, 0.0f, (float)exam_text.width, (float)exam_text.height};
+            if (exam_direction == LEFT) {
+                exam_frame.width = -exam_frame.width;
+            }
+            DrawTexturePro(
+                exam_text,
+                exam_frame,
+                (Rectangle){exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE},
+                (Vector2){0.0f, 0.0f},
+                0.0f,
+                WHITE
+            );
+            DrawRectangleLines((int)exam_hitbox.x, (int)exam_hitbox.y, (int)exam_hitbox.width, (int)exam_hitbox.height, RED);
+        }
+
         EndDrawing();
     }
 
+    UnloadTexture(player_text);
+    UnloadTexture(exam_text);
     CloseWindow();
     return 0;
 }
 
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
 {
-    FILE *arq; // Variavel que representa o arquivo(mapa) aberto, apontando pra ele com o ponteiro
+    FILE *arq;
     char linha[COLUNAS + 2];
     int i, j;
 
-    // Abre(fopen) o arquivo e faz a leitura(r) dele, caso seja nulo, termina a funcao retornando 0
     arq = fopen(nomeArquivo, "r");
     if (arq == NULL)
     {
         return 0;
     }
 
-    // Percorre as linhas do mapa
     for (i = 0; i < LINHAS; i++)
     {
-        // Preenche a linha da matriz com espacos
         for (j = 0; j < COLUNAS; j++)
         {
             mapa[i][j] = ' ';
         }
 
-        // Faz a leitura da linha seguinte e guarda em linha[]
         if (fgets(linha, COLUNAS + 2, arq) == NULL)
         {
-            // Coloca \0 na primeira posicao pra esvaziar a linha e evitar copiar a antiga
             linha[0] = '\0';
         }
 
-        /* Copia de linha para matriz, e quando chega ao fim do texto(\0) ou na quebra de linha(\n), para.
-        O que nao foi copiado continua sendo espaco */
         for (j = 0; j < COLUNAS; j++)
         {
             if (linha[j] == '\0' || linha[j] == '\n')
@@ -128,7 +362,46 @@ int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
         }
     }
 
-    // Fecha e avisa que funcionou
     fclose(arq);
     return 1;
+}
+
+void animation_update(Animation *self){
+    float delta_time = GetFrameTime();
+    self->duration_left -= delta_time;
+
+    if(self->duration_left <= 0.0){
+        self->duration_left = self->speed;
+        
+        if (self->current_frame == self->last_frame && self->type == ONESHOT) {
+            return;
+        }
+
+        self->current_frame += self->step;
+
+        if(self->current_frame > self->last_frame){
+            switch (self->type){
+                case REPEATING: self->current_frame = self->first_frame; break;
+                case ONESHOT:   self->current_frame = self->last_frame; break;
+            }
+        }
+        else if(self->current_frame < self->first_frame){
+            switch (self->type){
+                case REPEATING: self->current_frame = self->last_frame; break;
+                case ONESHOT:   self->current_frame = self->first_frame; break;
+            }
+        }
+    }
+}
+
+Rectangle animation_frame(Animation *self, int num_frames_per_row){
+    float x = (float)(self->current_frame % num_frames_per_row) * FRAME_WIDTH;
+    float y = (float)(self->current_frame / num_frames_per_row) * FRAME_HEIGHT;
+
+    return (Rectangle){ .x = x, .y = y, .width = FRAME_WIDTH, .height = FRAME_HEIGHT };
+} 
+
+void reset_animation(Animation *self) {
+    self->current_frame = self->first_frame;
+    self->duration_left = self->speed;
 }
