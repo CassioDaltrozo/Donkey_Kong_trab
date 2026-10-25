@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include "settings.h"
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -13,62 +14,9 @@
 // Tamanho visual e de colisão no ecrã (igual ao bloquinho do mapa: 32x32)
 #define RENDER_SIZE 32.0f
 
-typedef struct GameSettings{
-    int screen_width;
-    int screen_height;
-    int target_fps;
-    float gravity;
-} GameSettings;
-
-typedef struct PlayerSettings{
-    float speed;
-    float jump_force;
-    Vector2 velocity;
-    Vector2 position;
-    bool is_grounded;
-    bool alive;
-} PlayerSettings;
-
-typedef enum PlayerState {
-    IDLE,
-    RUNNING,
-    JUMPING,
-    ATTACKING
-} PlayerState;
-
-typedef enum Direction{
-    LEFT = -1,
-    RIGHT = 1,
-} Direction;
-
-typedef enum AnimationType{
-    REPEATING = 1,
-    ONESHOT = 2, 
-} AnimationType;
-
-typedef struct Animation{
-    int first_frame;
-    int last_frame;
-    int current_frame;
-    int step;
-    float speed;
-    float duration_left;
-    AnimationType type;
-} Animation;
-
-typedef struct Enemy {
-    Vector2 position;
-    Vector2 velocity;
-    float speed;
-    bool is_grounded;
-    bool alive;
-} Enemy;
 
 // Assinaturas de funções
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
-void animation_update(Animation *self);
-void reset_animation(Animation *self);
-Rectangle animation_frame(Animation *self, int num_frames_per_row);
 
 int main(){
     char mapa[LINHAS][COLUNAS];
@@ -366,42 +314,3 @@ int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
     return 1;
 }
 
-void animation_update(Animation *self){
-    float delta_time = GetFrameTime();
-    self->duration_left -= delta_time;
-
-    if(self->duration_left <= 0.0){
-        self->duration_left = self->speed;
-        
-        if (self->current_frame == self->last_frame && self->type == ONESHOT) {
-            return;
-        }
-
-        self->current_frame += self->step;
-
-        if(self->current_frame > self->last_frame){
-            switch (self->type){
-                case REPEATING: self->current_frame = self->first_frame; break;
-                case ONESHOT:   self->current_frame = self->last_frame; break;
-            }
-        }
-        else if(self->current_frame < self->first_frame){
-            switch (self->type){
-                case REPEATING: self->current_frame = self->last_frame; break;
-                case ONESHOT:   self->current_frame = self->first_frame; break;
-            }
-        }
-    }
-}
-
-Rectangle animation_frame(Animation *self, int num_frames_per_row){
-    float x = (float)(self->current_frame % num_frames_per_row) * FRAME_WIDTH;
-    float y = (float)(self->current_frame / num_frames_per_row) * FRAME_HEIGHT;
-
-    return (Rectangle){ .x = x, .y = y, .width = FRAME_WIDTH, .height = FRAME_HEIGHT };
-} 
-
-void reset_animation(Animation *self) {
-    self->current_frame = self->first_frame;
-    self->duration_left = self->speed;
-}
