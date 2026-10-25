@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define TAM_TILE 35.0f
+#define TAM_TILE 32.0f
 #define COLUNAS 30
 #define LINHAS 30
 
@@ -51,7 +51,7 @@ int main(){
 
     Direction exam_direction = LEFT;
 
-    // Posicionamento inicial com base na matriz do mapa
+    // Posicionamento inicial do player e do inimigo com base na matriz do mapa
     for (int i = 0; i < LINHAS; i++)
     {
         for (int j = 0; j < COLUNAS; j++)
@@ -140,31 +140,7 @@ int main(){
         Rectangle player_hitbox = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
         Rectangle exam_hitbox = {0};
 
-        // 2. Colisão do Jogador com o mapa ('Z')
-        for (int i = 0; i < LINHAS; i++) {
-            for (int j = 0; j < COLUNAS; j++) {
-                if (mapa[i][j] == 'Z') {
-                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
-                    if (CheckCollisionRecs(player_hitbox, tileRect)) {
-                        if (player.velocity.y >= 0) {
-                            player.position.y = (i * TAM_TILE) - RENDER_SIZE; 
-                            player.velocity.y = 0.0f;
-                            player.is_grounded = true;
-                        }
-                    }
-                }
-                if (mapa[i][j] == ' ') {
-                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
-                    if (CheckCollisionRecs(player_hitbox, tileRect)) {
-                        if (player.velocity.y == 0) {
-                            player.is_grounded = false;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Lógica e Colisão do Inimigo com o mapa
+        // 2. Lógica e Colisão do Inimigo com o mapa
         if (exam.alive) {
             exam.velocity.x = exam.speed * exam_direction;
 
@@ -177,45 +153,69 @@ int main(){
 
             exam_hitbox = (Rectangle){exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
 
-            for (int i = 0; i < LINHAS; i++) {
-                for (int j = 0; j < COLUNAS; j++) {
-                    if (mapa[i][j] == 'Z') {
-                        Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
-                        if (CheckCollisionRecs(exam_hitbox, tileRect)) {
+            if (exam.position.x <= 0 || exam.position.x >= (COLUNAS * TAM_TILE - RENDER_SIZE)) {
+                exam_direction *= -1;
+            }
+        }
+
+        // 3. Colisão do Jogador e do inimigo com o mapa ('Z')
+        for (int i = 0; i < LINHAS; i++) {
+            for (int j = 0; j < COLUNAS; j++) {
+                if (mapa[i][j] == 'Z') {
+                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+
+                    //COLISAO DO PLAYER COM O CHAO
+                    if (CheckCollisionRecs(player_hitbox, tileRect)) {
+                        if (player.velocity.y >= 0) {
+                            player.position.y = (i * TAM_TILE) - RENDER_SIZE; 
+                            player.velocity.y = 0.0f;
+                            player.is_grounded = true;
+                        }
+                    }
+                    //COLISAO DO INIMIGO COM O CHAO
+                    if (CheckCollisionRecs(exam_hitbox, tileRect)) {
                             if (exam.velocity.y >= 0) {
                                 exam.position.y = (i * TAM_TILE) - RENDER_SIZE;
                                 exam.velocity.y = 0.0f;
                                 exam.is_grounded = true;
                             }
                         }
-                        else
-                            exam.is_grounded = false;
-                    }
+                    else
+                        exam.is_grounded = false;
                 }
-            }
-
-            if (exam.position.x <= 0 || exam.position.x >= (COLUNAS * TAM_TILE - RENDER_SIZE)) {
-                exam_direction *= -1;
-            }
-
-            if (player.alive && CheckCollisionRecs(player_hitbox, exam_hitbox)) {
-                if (current_state == ATTACKING) {
-                    exam.alive = false;
-                } else {
-                    player.alive = false;
+                //bug aleatorio do player corrigido
+                if (mapa[i][j] == ' ') {
+                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+                    if (CheckCollisionRecs(player_hitbox, tileRect)) {
+                        if (player.velocity.y == 0) {
+                            player.is_grounded = false;
+                        }
+                    }
                 }
             }
         }
 
+        if (player.alive && CheckCollisionRecs(player_hitbox, exam_hitbox)) {
+            if (current_state == ATTACKING) {
+                exam.alive = false;
+            } else {
+                player.alive = false;
+                }
+            }
+
         switch (current_state) {
             case IDLE:      
-                current_anim = &anim_idle; break;
+                current_anim = &anim_idle;
+                break;
             case RUNNING:   
-                current_anim = &anim_run; break;
+                current_anim = &anim_run;
+                break;
             case JUMPING:   
-                current_anim = &anim_jump; break;
+                current_anim = &anim_jump;
+                break;
             case ATTACKING: 
-                current_anim = &anim_attack; break;
+                current_anim = &anim_attack;
+                break;
         }
 
         if (player.alive) {
@@ -286,7 +286,6 @@ int main(){
     CloseWindow();
     return 0;
 }
-
 
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
 {
