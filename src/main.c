@@ -82,7 +82,12 @@ int main(){
     SetTargetFPS(settings.target_fps);
 
     Texture2D player_text = LoadTexture("assets/jogador/jogador.png");
+    Texture2D ladder_text = LoadTexture("assets/mapa/escada2.png");
     Texture2D exam_text = LoadTexture("assets/inimigos/inimigoteste.png");
+    Texture2D grama_text = LoadTexture("assets/mapa/grama2.png");
+    Texture2D ru_text = LoadTexture("assets/mapa/ru.png");
+
+
 
     while(!WindowShouldClose()){
         float delta_time = GetFrameTime();
@@ -192,7 +197,7 @@ int main(){
                 //subindo escada com player no s
                 if (mapa[i][j] == 'S'){
                     if (CheckCollisionRecs(player_hitbox, tileRect)) {
-                        if (IsKeyPressed(KEY_SPACE) && player.velocity.x == 0) {
+                        if (IsKeyPressed(KEY_W) && player.velocity.x == 0) {
                             player.velocity.y = -450.0f;
                             player.is_grounded = false;
                             current_state = JUMPING;
@@ -250,11 +255,30 @@ int main(){
         for (int i = 0; i < LINHAS; i++) {
             for (int j = 0; j < COLUNAS; j++) {
                 if (mapa[i][j] == 'Z') {
-                    DrawRectangle((int)(j * TAM_TILE), (int)(i * TAM_TILE), (int)TAM_TILE, (int)TAM_TILE, GRAY);
+                    Rectangle grama_frame = {0.0f, 0.0f, grama_text.width, grama_text.height};
+                    DrawTexturePro(grama_text, grama_frame, 
+                    (Rectangle){j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE},
+                    (Vector2){0.0f, 0.0f},
+                    0.0f,
+                    WHITE
+                    );
                 } else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D') {
-                    DrawRectangle((int)(j * TAM_TILE), (int)(i * TAM_TILE), (int)TAM_TILE, (int)TAM_TILE, GREEN);
+                    Rectangle ladder_frame = {0.0f, 0.0f, ladder_text.width, ladder_text.height};
+                    DrawTexturePro(ladder_text, ladder_frame, 
+                    (Rectangle){j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE},
+                    (Vector2){0.0f, 0.0f},
+                    0.0f,
+                    WHITE
+                    );
+
                 } else if (mapa[i][j] == 'F') {
-                    DrawRectangle((int)(j * TAM_TILE), (int)(i * TAM_TILE), (int)TAM_TILE, (int)TAM_TILE, YELLOW);
+                    Rectangle ru_frame = {0.0f, 0.0f, ru_text.width, ru_text.height};
+                    DrawTexturePro(ru_text, ru_frame, 
+                    (Rectangle){j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE},
+                    (Vector2){0.0f, 0.0f},
+                    0.0f,
+                    YELLOW
+                    );
                 }
             }
         }
@@ -298,6 +322,7 @@ int main(){
         EndDrawing();
     }
 
+    UnloadTexture(ladder_text);
     UnloadTexture(player_text);
     UnloadTexture(exam_text);
     CloseWindow();
