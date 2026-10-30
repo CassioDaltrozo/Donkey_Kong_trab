@@ -195,6 +195,17 @@ int main(){
                         if (IsKeyPressed(KEY_SPACE) && player.velocity.x == 0) {
                             player.velocity.y = -450.0f;
                             player.is_grounded = false;
+                            current_state = JUMPING;
+                        }
+                    }
+                }
+
+                 //descendo escada com player no d
+                if (mapa[i][j] == 'D'){
+                    if (CheckCollisionRecs(player_hitbox, tileRect)) {
+                        if (IsKeyDown(KEY_S) && player.velocity.x == 0) {
+                            player.position.y += 2 * RENDER_SIZE;
+                            current_state = JUMPING;
                         }
                     }
                 }
