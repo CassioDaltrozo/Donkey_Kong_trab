@@ -14,9 +14,7 @@
 // Tamanho visual e de colisão no ecrã (igual ao bloquinho do mapa: 32x32)
 #define RENDER_SIZE 32.0f
 
-
-// Assinaturas de funções
-int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
+// Assinaturas de funções'
 
 int main(){
     char mapa[LINHAS][COLUNAS];
@@ -38,13 +36,13 @@ int main(){
         .alive = true,
         .is_grounded = true,
         .velocity = {0.0f, 0.0f},
-        .speed = 200.0f,
-        .jump_force = -330.0f,
+        .speed = 100.0f,
+        .jump_force = -320.0f,
     };
 
     Enemy exam = {
         .velocity = {0.0f, 0.0f},
-        .speed = 80.0f,
+        .speed = 200.0f,
         .is_grounded = false,
         .alive = true
     };
@@ -158,12 +156,12 @@ int main(){
             }
         }
 
-        // 3. Colisão do Jogador e do inimigo com o mapa ('Z')
+        // 3. Colisão do Jogador e do inimigo com o mapa ('Z'), com o vento (' ') e com a escada ('S')
         for (int i = 0; i < LINHAS; i++) {
             for (int j = 0; j < COLUNAS; j++) {
-                if (mapa[i][j] == 'Z') {
-                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+                Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
 
+                if (mapa[i][j] == 'Z') {
                     //COLISAO DO PLAYER COM O CHAO
                     if (CheckCollisionRecs(player_hitbox, tileRect)) {
                         if (player.velocity.y >= 0) {
@@ -172,22 +170,30 @@ int main(){
                             player.is_grounded = true;
                         }
                     }
+                
                     //COLISAO DO INIMIGO COM O CHAO
                     if (CheckCollisionRecs(exam_hitbox, tileRect)) {
-                            if (exam.velocity.y >= 0) {
-                                exam.position.y = (i * TAM_TILE) - RENDER_SIZE;
-                                exam.velocity.y = 0.0f;
-                                exam.is_grounded = true;
-                            }
+                        if (exam.velocity.y >= 0) {
+                            exam.position.y = (i * TAM_TILE) - RENDER_SIZE;
+                            exam.velocity.y = 0.0f;
+                            exam.is_grounded = true;
                         }
+                    }
                     else
                         exam.is_grounded = false;
                 }
                 //bug aleatorio do player corrigido
                 if (mapa[i][j] == ' ') {
-                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+                    if (CheckCollisionRecs(player_hitbox, tileRect) && player.velocity.y == 0) {
+                        player.is_grounded = false;
+                    }
+                }
+
+                //subindo escada com player no s
+                if (mapa[i][j] == 'S'){
                     if (CheckCollisionRecs(player_hitbox, tileRect)) {
-                        if (player.velocity.y == 0) {
+                        if (IsKeyPressed(KEY_SPACE) && player.velocity.x == 0) {
+                            player.velocity.y = -450.0f;
                             player.is_grounded = false;
                         }
                     }
@@ -287,44 +293,4 @@ int main(){
     return 0;
 }
 
-int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
-{
-    FILE *arq;
-    char linha[COLUNAS + 2];
-    int i, j;
-
-    arq = fopen(nomeArquivo, "r");
-    if (arq == NULL)
-    {
-        return 0;
-    }
-
-    for (i = 0; i < LINHAS; i++)
-    {
-        for (j = 0; j < COLUNAS; j++)
-        {
-            mapa[i][j] = ' ';
-        }
-
-        if (fgets(linha, COLUNAS + 2, arq) == NULL)
-        {
-            linha[0] = '\0';
-        }
-
-        for (j = 0; j < COLUNAS; j++)
-        {
-            if (linha[j] == '\0' || linha[j] == '\n')
-            {
-                break;
-            }
-            else
-            {
-                mapa[i][j] = linha[j];
-            }
-        }
-    }
-
-    fclose(arq);
-    return 1;
-}
 

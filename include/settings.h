@@ -3,6 +3,9 @@
 
 #include "raylib.h"
 
+#define LINHAS 30
+#define COLUNAS 30
+
 typedef struct GameSettings{
     int screen_width;
     int screen_height;
@@ -57,6 +60,7 @@ typedef struct Enemy {
 void animation_update(Animation *self);
 void reset_animation(Animation *self);
 Rectangle animation_frame(Animation *self, int num_frames_per_row);
+int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
 
 
 #endif

@@ -1,5 +1,6 @@
 #include "settings.h"
 #include "raylib.h"
+#include <stdio.h>
 
 void animation_update(Animation *self){
     float delta_time = GetFrameTime();
@@ -39,4 +40,46 @@ Rectangle animation_frame(Animation *self, int num_frames_per_row){
 void reset_animation(Animation *self) {
     self->current_frame = self->first_frame;
     self->duration_left = self->speed;
+}
+
+
+int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
+{
+    FILE *arq;
+    char linha[COLUNAS + 2];
+    int i, j;
+
+    arq = fopen(nomeArquivo, "r");
+    if (arq == NULL)
+    {
+        return 0;
+    }
+
+    for (i = 0; i < LINHAS; i++)
+    {
+        for (j = 0; j < COLUNAS; j++)
+        {
+            mapa[i][j] = ' ';
+        }
+
+        if (fgets(linha, COLUNAS + 2, arq) == NULL)
+        {
+            linha[0] = '\0';
+        }
+
+        for (j = 0; j < COLUNAS; j++)
+        {
+            if (linha[j] == '\0' || linha[j] == '\n')
+            {
+                break;
+            }
+            else
+            {
+                mapa[i][j] = linha[j];
+            }
+        }
+    }
+
+    fclose(arq);
+    return 1;
 }
