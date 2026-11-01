@@ -79,6 +79,7 @@ int main(){
     Animation *current_anim = &anim_idle;
 
     InitWindow(settings.screen_width, settings.screen_height, "Donkey Kong do RU");
+    InitAudioDevice();
     SetTargetFPS(settings.target_fps);
 
     Texture2D player_text = LoadTexture("assets/jogador/jogador.png");
@@ -86,10 +87,14 @@ int main(){
     Texture2D exam_text = LoadTexture("assets/inimigos/inimigoteste.png");
     Texture2D grama_text = LoadTexture("assets/mapa/grama2.png");
     Texture2D ru_text = LoadTexture("assets/mapa/ru.png");
+    Sound jumpSound = LoadSound("assets/sons/jump.mp3");
+    Sound somMorte = LoadSound("assets/sons/sommorte.mp3");
+    Music musiquinhaTeste = LoadMusicStream("assets/musica/musicafundo.mp3");
 
-
-
+    PlayMusicStream(musiquinhaTeste);
     while(!WindowShouldClose()){
+        UpdateMusicStream(musiquinhaTeste);
+
         float delta_time = GetFrameTime();
         previous_state = current_state;
 
@@ -105,10 +110,21 @@ int main(){
                 current_state = ATTACKING;
             } 
 
+            if (IsKeyPressed(KEY_J)) {
+                current_state = ATTACKING;
+            }
+
+            if(player.position.x < 0)
+                player.position.x = 0;
+
+            if(player.position.x > (COLUNAS * TAM_TILE - RENDER_SIZE))
+                player.position.x = (COLUNAS * TAM_TILE - RENDER_SIZE);
+
             if (IsKeyDown(KEY_SPACE) && player.is_grounded) {
                 player.velocity.y = player.jump_force;
                 player.is_grounded = false;
                 current_state = JUMPING;
+                PlaySound(jumpSound);
             } 
 
             if (IsKeyDown(KEY_A) || IsKeyDown(KEY_D)) {
@@ -220,8 +236,10 @@ int main(){
         if (player.alive && CheckCollisionRecs(player_hitbox, exam_hitbox)) {
             if (current_state == ATTACKING) {
                 exam.alive = false;
+                PlaySound(somMorte);
             } else {
                 player.alive = false;
+                PlaySound(somMorte);
                 }
             }
 
@@ -322,9 +340,14 @@ int main(){
         EndDrawing();
     }
 
+    UnloadMusicStream(musiquinhaTeste);
+    UnloadSound(jumpSound);
+    UnloadSound(somMorte);
+
     UnloadTexture(ladder_text);
     UnloadTexture(player_text);
     UnloadTexture(exam_text);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
