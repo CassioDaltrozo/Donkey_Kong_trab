@@ -6,6 +6,9 @@
 #define LINHAS 30
 #define COLUNAS 30
 
+
+//BASE DE DADOS DE CONFIGURACOES DO JOGO, DO JOGADOR, DO INIMIGO, E DAS ANIMAÇOES 
+
 typedef struct GameSettings{
     int screen_width;
     int screen_height;
@@ -22,17 +25,25 @@ typedef struct PlayerSettings{
     bool alive;
 } PlayerSettings;
 
+typedef struct Enemy {
+    Vector2 position;
+    Vector2 velocity;
+    float speed;
+    bool is_grounded;
+    bool alive;
+} Enemy;
+
+typedef enum Direction{
+    LEFT = -1,
+    RIGHT = 1,
+} Direction;
+
 typedef enum PlayerState {
     IDLE,
     RUNNING,
     JUMPING,
     ATTACKING
 } PlayerState;
-
-typedef enum Direction{
-    LEFT = -1,
-    RIGHT = 1,
-} Direction;
 
 typedef enum AnimationType{
     REPEATING = 1,
@@ -49,18 +60,12 @@ typedef struct Animation{
     AnimationType type;
 } Animation;
 
-typedef struct Enemy {
-    Vector2 position;
-    Vector2 velocity;
-    float speed;
-    bool is_grounded;
-    bool alive;
-} Enemy;
-
+//ASSINA FUNCOES DE ANIMACAO DE SPRITE
 void animation_update(Animation *self);
 void reset_animation(Animation *self);
 Rectangle animation_frame(Animation *self, int num_frames_per_row);
-int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
 
+//ASSINA FUNCAO QUE CARREGA O MAPA
+int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
 
 #endif

@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include <stdio.h>
 
+//UPTADE DE ANIMAÇAO, USANDO PONTEIROS
 void animation_update(Animation *self){
     float delta_time = GetFrameTime();
     self->duration_left -= delta_time;
@@ -17,19 +18,30 @@ void animation_update(Animation *self){
 
         if(self->current_frame > self->last_frame){
             switch (self->type){
-                case REPEATING: self->current_frame = self->first_frame; break;
-                case ONESHOT:   self->current_frame = self->last_frame; break;
+                case REPEATING:
+                self->current_frame = self->first_frame;
+                break;
+
+                case ONESHOT:
+                self->current_frame = self->last_frame;
+                break;
             }
         }
         else if(self->current_frame < self->first_frame){
             switch (self->type){
-                case REPEATING: self->current_frame = self->last_frame; break;
-                case ONESHOT:   self->current_frame = self->first_frame; break;
+                case REPEATING:
+                self->current_frame = self->last_frame;
+                break;
+
+                case ONESHOT:
+                self->current_frame = self->first_frame;
+                break;
             }
         }
     }
 }
 
+//RETORNO DO FRAME DA PNG PARA DESENHO
 Rectangle animation_frame(Animation *self, int num_frames_per_row){
     float x = (float)(self->current_frame % num_frames_per_row) * 256.0f;
     float y = (float)(self->current_frame / num_frames_per_row) * 256.0f;
@@ -37,12 +49,13 @@ Rectangle animation_frame(Animation *self, int num_frames_per_row){
     return (Rectangle){ .x = x, .y = y, .width = 256.0f, .height = 256.0f};
 } 
 
+//RESET PARA PERMANENCIA
 void reset_animation(Animation *self) {
     self->current_frame = self->first_frame;
     self->duration_left = self->speed;
 }
 
-
+//FUNCAO CARREGA MAPA DEFINIDA
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
 {
     FILE *arq;

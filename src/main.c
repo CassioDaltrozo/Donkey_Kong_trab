@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define TAM_TILE 32.0f
 #define COLUNAS 30
 #define LINHAS 30
 
@@ -11,12 +10,12 @@
 #define FRAME_WIDTH 256.0f
 #define FRAME_HEIGHT 256.0f
 
-// Tamanho visual e de colisão no ecrã (igual ao bloquinho do mapa: 32x32)
+// Tamanho visual e de colisão no ecrã (igual ao bloquinho (tile) do mapa: 32x32)
+#define TAM_TILE 32.0f
 #define RENDER_SIZE 32.0f
 
-// Assinaturas de funções'
-
 int main(){
+    //RENDERIZAÇÃO BÁSICA DO MAPA 
     char mapa[LINHAS][COLUNAS];
 
     if (carregaMapa("maps/mapa1.txt", mapa) == 0)
@@ -25,6 +24,7 @@ int main(){
         return 0;
     }
 
+    //DEFINIÇÃO DE DADOS DO JOGO, DO JOGADOR E DO INIMIGO 1
     GameSettings settings = {
         .screen_width = (int)(COLUNAS * TAM_TILE),
         .screen_height = (int)(LINHAS * TAM_TILE),
@@ -47,7 +47,6 @@ int main(){
         .alive = true
     };
 
-    Direction exam_direction = LEFT;
 
     // Posicionamento inicial do player e do inimigo com base na matriz do mapa
     for (int i = 0; i < LINHAS; i++)
@@ -73,11 +72,14 @@ int main(){
     Animation anim_jump   = { .first_frame = 8, .last_frame = 11, .current_frame = 11, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT };
     Animation anim_attack = { .first_frame = 12, .last_frame = 15, .current_frame = 12, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT };
 
+    //INICIALIZAÇÃO DOS ESTADOS DE ANIMAÇÃO E DAS DIREÇÕES
     PlayerState current_state = IDLE;
     PlayerState previous_state = IDLE;
     Direction player_direction = RIGHT;
+    Direction exam_direction = LEFT;
     Animation *current_anim = &anim_idle;
 
+    //INICIALIZAÇÃO DA JANELA, AUDIO, FPS E TEXTURAS
     InitWindow(settings.screen_width, settings.screen_height, "Donkey Kong do RU");
     InitAudioDevice();
     SetTargetFPS(settings.target_fps);
@@ -92,13 +94,16 @@ int main(){
     Music musiquinhaTeste = LoadMusicStream("assets/musica/musicafundo.mp3");
 
     PlayMusicStream(musiquinhaTeste);
+
+    //LOOP PRINCIPAL
     while(!WindowShouldClose()){
+
         UpdateMusicStream(musiquinhaTeste);
 
         float delta_time = GetFrameTime();
         previous_state = current_state;
 
-        // 1. Lógica e Controles do Jogador
+        // 1. Lógica, Controles e posição do Jogador
         if (player.alive) {
             player.velocity.x = 0.0f;
 
@@ -233,6 +238,7 @@ int main(){
             }
         }
 
+        //TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
         if (player.alive && CheckCollisionRecs(player_hitbox, exam_hitbox)) {
             if (current_state == ATTACKING) {
                 exam.alive = false;
@@ -243,6 +249,7 @@ int main(){
                 }
             }
 
+        //TROCA ESTADO DE ANIMAÇÃO DO JOGADOR
         switch (current_state) {
             case IDLE:      
                 current_anim = &anim_idle;
@@ -265,38 +272,32 @@ int main(){
             animation_update(current_anim);
         }
 
-        // --- RENDERIZAÇÃO ---
+
+        // RENDERIZAÇÃO DO DESENHO
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
         // Desenha os elementos do mapa
+        Vector2 origem = {0.0f, 0.0f};
+        float rotacao = 0.0f;
+
         for (int i = 0; i < LINHAS; i++) {
             for (int j = 0; j < COLUNAS; j++) {
-                if (mapa[i][j] == 'Z') {
-                    Rectangle grama_frame = {0.0f, 0.0f, grama_text.width, grama_text.height};
-                    DrawTexturePro(grama_text, grama_frame, 
-                    (Rectangle){j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE},
-                    (Vector2){0.0f, 0.0f},
-                    0.0f,
-                    WHITE
-                    );
-                } else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D') {
-                    Rectangle ladder_frame = {0.0f, 0.0f, ladder_text.width, ladder_text.height};
-                    DrawTexturePro(ladder_text, ladder_frame, 
-                    (Rectangle){j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE},
-                    (Vector2){0.0f, 0.0f},
-                    0.0f,
-                    WHITE
-                    );
+                Rectangle posicao_telha = {j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
 
-                } else if (mapa[i][j] == 'F') {
+                if (mapa[i][j] == 'Z') {  //DESENHA CHAO
+                    Rectangle grama_frame = {0.0f, 0.0f, grama_text.width, grama_text.height};
+                    DrawTexturePro(grama_text, grama_frame, posicao_telha, origem, rotacao, WHITE);
+
+                }
+                else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D') { //DESENHA ESCADA
+                    Rectangle ladder_frame = {0.0f, 0.0f, ladder_text.width, ladder_text.height};
+                    DrawTexturePro(ladder_text, ladder_frame, posicao_telha, origem, rotacao, WHITE);
+
+                }
+                else if (mapa[i][j] == 'F') { //DESENHA O RU
                     Rectangle ru_frame = {0.0f, 0.0f, ru_text.width, ru_text.height};
-                    DrawTexturePro(ru_text, ru_frame, 
-                    (Rectangle){j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE},
-                    (Vector2){0.0f, 0.0f},
-                    0.0f,
-                    YELLOW
-                    );
+                    DrawTexturePro(ru_text, ru_frame, posicao_telha, origem, rotacao, YELLOW);
                 }
             }
         }
@@ -304,49 +305,47 @@ int main(){
         // Desenha o Jogador
         if (player.alive) {
             Rectangle player_frame = animation_frame(current_anim, 4);
+            Rectangle desenho_player = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
+
+            //ATULIZA DIRECAO DO PLAYER NA SPRITE (inverte)
             if (player_direction == LEFT) {
                 player_frame.width = -player_frame.width;
             }
-            DrawTexturePro(
-                player_text, 
-                player_frame,   
-                (Rectangle){player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE},
-                (Vector2){0.0f, 0.0f},
-                0.0f, 
-                WHITE
-            );
+
+            //DESENHA O PLAYER E HITBOX PARA TESTES
+            DrawTexturePro(player_text, player_frame, desenho_player, origem, rotacao, WHITE);
             DrawRectangleLines((int)player_hitbox.x, (int)player_hitbox.y, (int)player_hitbox.width, (int)player_hitbox.height, GREEN);
-        } else {
+        }
+        else{
             DrawText("VOCE MORREU! Pressione R para reiniciar", 150, 450, 20, RED);
         }
 
         // Desenha o Inimigo
         if (exam.alive) {
             Rectangle exam_frame = {0.0f, 0.0f, (float)exam_text.width, (float)exam_text.height};
+            Rectangle desenho_exam = {exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
+
+            //ATUALIZA DIRECAO DO INIMIGO NA SPRITE(inverte)
             if (exam_direction == LEFT) {
                 exam_frame.width = -exam_frame.width;
             }
-            DrawTexturePro(
-                exam_text,
-                exam_frame,
-                (Rectangle){exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE},
-                (Vector2){0.0f, 0.0f},
-                0.0f,
-                WHITE
-            );
+
+            //DESENHA O INIMIGO E HITBOX PARA TESTES
+            DrawTexturePro(exam_text, exam_frame, desenho_exam, origem, rotacao, WHITE);
             DrawRectangleLines((int)exam_hitbox.x, (int)exam_hitbox.y, (int)exam_hitbox.width, (int)exam_hitbox.height, RED);
         }
 
         EndDrawing();
     }
 
+    //DESCARREGA MUSICA, TEXTURAS, FECHA AUDIO E JANELA
     UnloadMusicStream(musiquinhaTeste);
     UnloadSound(jumpSound);
     UnloadSound(somMorte);
-
     UnloadTexture(ladder_text);
     UnloadTexture(player_text);
     UnloadTexture(exam_text);
+    
     CloseAudioDevice();
     CloseWindow();
     return 0;
