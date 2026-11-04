@@ -132,19 +132,22 @@ int main(){
                 PlaySound(jumpSound);
             } 
 
-            if (IsKeyDown(KEY_A) || IsKeyDown(KEY_D)) {
-                if (player.is_grounded) current_state = RUNNING;
-                    if (IsKeyDown(KEY_A)){
-                        player.velocity.x = -player.speed;
-                        player_direction = LEFT;
-                    }
-                    if (IsKeyDown(KEY_D)){
-                        player.velocity.x = player.speed;
-                        player_direction = RIGHT;
-                    }
-                } else {
-                    if (player.is_grounded && current_state == RUNNING) {
-                        current_state = IDLE;
+            if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+                if (player.is_grounded) 
+                    current_state = RUNNING;
+                
+                if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+                    player.velocity.x = -player.speed;
+                    player_direction = LEFT;
+                }
+                
+                if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+                    player.velocity.x = player.speed;
+                    player_direction = RIGHT;
+                }
+            } else {
+                if (player.is_grounded && current_state == RUNNING) {
+                    current_state = IDLE;
                     }
                 }
 
@@ -218,7 +221,7 @@ int main(){
                 //subindo escada com player no s
                 if (mapa[i][j] == 'S'){
                     if (CheckCollisionRecs(player_hitbox, tileRect)) {
-                        if (IsKeyPressed(KEY_W) && player.velocity.x == 0) {
+                        if ((IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) && player.velocity.x == 0) {
                             player.velocity.y = -450.0f;
                             player.is_grounded = false;
                             current_state = JUMPING;
@@ -229,7 +232,7 @@ int main(){
                  //descendo escada com player no d
                 if (mapa[i][j] == 'D'){
                     if (CheckCollisionRecs(player_hitbox, tileRect)) {
-                        if (IsKeyDown(KEY_S) && player.velocity.x == 0) {
+                        if ((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) && player.velocity.x == 0) {
                             player.position.y += 2 * RENDER_SIZE;
                             current_state = JUMPING;
                         }
