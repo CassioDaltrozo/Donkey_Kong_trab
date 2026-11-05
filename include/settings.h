@@ -16,6 +16,12 @@ typedef struct GameSettings{
     float gravity;
 } GameSettings;
 
+typedef enum GameState{
+    MENU,
+    GAME,
+    PAUSE,
+} GameState;
+
 typedef struct PlayerSettings{
     float speed;
     float jump_force;
