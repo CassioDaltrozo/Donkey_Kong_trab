@@ -2,38 +2,45 @@
 #include "raylib.h"
 #include <stdio.h>
 
-//UPTADE DE ANIMAÇAO, USANDO PONTEIROS
-void animation_update(Animation *self){
+// UPTADE DE ANIMAÇAO, USANDO PONTEIROS
+void animation_update(Animation *self)
+{
     float delta_time = GetFrameTime();
     self->duration_left -= delta_time;
 
-    if(self->duration_left <= 0.0){
+    if (self->duration_left <= 0.0)
+    {
         self->duration_left = self->speed;
-        
-        if (self->current_frame == self->last_frame && self->type == ONESHOT) {
+
+        if (self->current_frame == self->last_frame && self->type == ONESHOT)
+        {
             return;
         }
 
         self->current_frame += self->step;
 
-        if(self->current_frame > self->last_frame){
-            switch (self->type){
-                case REPEATING:
+        if (self->current_frame > self->last_frame)
+        {
+            switch (self->type)
+            {
+            case REPEATING:
                 self->current_frame = self->first_frame;
                 break;
 
-                case ONESHOT:
+            case ONESHOT:
                 self->current_frame = self->last_frame;
                 break;
             }
         }
-        else if(self->current_frame < self->first_frame){
-            switch (self->type){
-                case REPEATING:
+        else if (self->current_frame < self->first_frame)
+        {
+            switch (self->type)
+            {
+            case REPEATING:
                 self->current_frame = self->last_frame;
                 break;
 
-                case ONESHOT:
+            case ONESHOT:
                 self->current_frame = self->first_frame;
                 break;
             }
@@ -41,21 +48,23 @@ void animation_update(Animation *self){
     }
 }
 
-//RETORNO DO FRAME DA PNG PARA DESENHO
-Rectangle animation_frame(Animation *self, int num_frames_per_row){
+// RETORNO DO FRAME DA PNG PARA DESENHO
+Rectangle animation_frame(Animation *self, int num_frames_per_row)
+{
     float x = (float)(self->current_frame % num_frames_per_row) * 256.0f;
     float y = (float)(self->current_frame / num_frames_per_row) * 256.0f;
 
-    return (Rectangle){ .x = x, .y = y, .width = 256.0f, .height = 256.0f};
-} 
+    return (Rectangle){.x = x, .y = y, .width = 256.0f, .height = 256.0f};
+}
 
-//RESET PARA PERMANENCIA
-void reset_animation(Animation *self) {
+// RESET PARA PERMANENCIA
+void reset_animation(Animation *self)
+{
     self->current_frame = self->first_frame;
     self->duration_left = self->speed;
 }
 
-//FUNCAO CARREGA MAPA DEFINIDA
+// FUNCAO CARREGA MAPA DEFINIDA
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
 {
     FILE *arq;
@@ -95,4 +104,22 @@ int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
 
     fclose(arq);
     return 1;
+}
+
+int achaChao(char mapa[LINHAS][COLUNAS], int col, int linha_inicial, int max_descida)
+{
+    if (col < 0 || col >= COLUNAS)
+    {
+        return -1;
+    }
+
+    for (int i = linha_inicial; i <= linha_inicial + max_descida && i < LINHAS; i++)
+    {
+        if (i >= 0 && mapa[i][col] == 'Z')
+        {
+            return i;
+        }
+    }
+
+    return -1;
 }
