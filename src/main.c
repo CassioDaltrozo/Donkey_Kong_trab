@@ -5,9 +5,6 @@
 #include "raymath.h"
 #include <math.h>
 
-#define COLUNAS 30
-#define LINHAS 30
-
 // Tamanho de cada frame dentro do ficheiro da imagem original (ex: 256x256 por frame)
 #define FRAME_WIDTH 256.0f
 #define FRAME_HEIGHT 256.0f
@@ -20,6 +17,15 @@
 #define BANANA_LARGURA 10.0f
 #define BANANA_ALTURA 6.0f
 
+// Chance de 0 a 100 do inimigo usar a escada
+#define CHANCE_ESCADA 60
+// Tempo antes do inimigo usar outra escada
+#define COOLDOWN_ESCADA 2.0f
+
+// subida na escada
+#define SUBIR_ESCADA -450.0f
+
+#define DESCER_ESCADA (2 * RENDER_SIZE)
 int main()
 {
     // RENDERIZAÇÃO BÁSICA DO MAPA
@@ -46,12 +52,12 @@ int main()
         .is_grounded = true,
         .velocity = {0.0f, 0.0f},
         .speed = 100.0f,
-        .jump_force = -320.0f,
+        .jump_force = -380.0f,
     };
 
     Enemy exam = {
         .velocity = {0.0f, 0.0f},
-        .speed = 200.0f,
+        .speed = 90.0f,
         .is_grounded = false,
         .alive = true};
 
@@ -102,6 +108,8 @@ int main()
     PlayerState previous_state = IDLE;
     Direction player_direction = RIGHT;
     Direction exam_direction = LEFT;
+    bool exam_na_escada = false;
+    float exam_cooldown_escada = 0.0f;
     Animation *current_anim = &anim_idle;
 
     // INICIALIZAÇÃO DA JANELA, AUDIO, FPS E TEXTURAS
@@ -151,11 +159,6 @@ int main()
                 if (!player.is_grounded)
                 {
                     player.velocity.y += settings.gravity * delta_time;
-                }
-
-                if (IsKeyPressed(KEY_J))
-                {
-                    current_state = ATTACKING;
                 }
 
                 if (IsKeyPressed(KEY_J))
@@ -237,18 +240,19 @@ int main()
                 }
             }
 
+            // Macaco e bananas
             if (player.alive)
             {
-                // Só conta o tempo com o jogador vivo; se ele morre, o macaco para.
+                // Só conta o tempo com o jogador vivo
                 monkey.throw_cooldown -= delta_time;
 
                 if (monkey.throw_cooldown <= 0.0f)
                 {
                     monkey.throw_cooldown = monkey.throw_interval;
 
-                    // PASSO 1: prever onde o jogador vai estar.
-                    // Andando: velocidade x tempo = distância que ele percorre em 1,2 s.
-                    // Parado: o macaco "aposta" que ele vai andar para o lado que olha.
+                    // Preve onde o jogador vai estar
+                    // Andando: velocidade x tempo = distância que ele percorre em 1,2 s
+                    // Parado: o macaco aposta que ele vai andar para o lado que olha
                     float frente;
                     if (player.velocity.x != 0.0f)
                     {
@@ -266,35 +270,34 @@ int main()
                     if (alvo_x > COLUNAS * TAM_TILE - RENDER_SIZE)
                         alvo_x = COLUNAS * TAM_TILE - RENDER_SIZE;
 
-                    // PASSO 2: converter posição (pixels) em coluna e linha do mapa.
-                    // Dividir por TAM_TILE diz em qual bloquinho estamos.
-                    // Usamos o CENTRO do jogador (+ RENDER_SIZE / 2) para evitar erro de borda.
+                    // Converter posição em coluna e linha do mapa
+                    // Dividir por TAM_TILE diz em qual bloquinho estamos
+                    // Usamos o centro do jogador (+ RENDER_SIZE / 2) para evitar erro de borda
                     int coluna = (int)((alvo_x + RENDER_SIZE / 2.0f) / TAM_TILE);
                     int linha_jogador = (int)((player.position.y + RENDER_SIZE / 2.0f) / TAM_TILE);
 
                     // PASSO 3: achar o chão nessa coluna, descendo no máximo 2 linhas.
                     int linha_chao = achaChao(mapa, coluna, linha_jogador, 2);
 
-                    // Posição X da banana: centralizada dentro do bloquinho.
+                    // Posição X da banana: centralizada dentro do bloquinho
                     float banana_x = coluna * TAM_TILE + (TAM_TILE - BANANA_LARGURA) / 2.0f;
 
-                    // PASSO 4: regras que impedem o arremesso.
+                    // Regras que impedem o arremesso
                     bool pode_jogar = true;
 
-                    // (a) não achou chão (ex.: o alvo caiu no vazio, fora da plataforma)
+                    // 1. não achou chão
                     if (linha_chao == -1)
                         pode_jogar = false;
 
-                    // (b) o chão achado é o da plataforma do RU (a linha logo abaixo do 'F').
-                    //     Se a banana ainda cair lá, troque o +1 por +2.
+                    // 2. o chão achado é o da plataforma do RU
                     if (pode_jogar && linha_chao <= linha_ru + 1)
                         pode_jogar = false;
 
-                    // (c) a banana cairia em cima do jogador (morte injusta)
+                    // 3. a banana cairia em cima do jogador
                     if (pode_jogar && fabsf(banana_x - player.position.x) < TAM_TILE)
                         pode_jogar = false;
 
-                    // PASSO 5: se tudo certo, usa uma banana livre do estoque.
+                    // Se tudo certo, usa uma banana livre do estoque
                     if (pode_jogar)
                     {
                         for (int i = 0; i < MAX_BANANAS; i++)
@@ -313,14 +316,14 @@ int main()
                 }
             }
 
-            // Atualiza cada banana do estoque.
-            // 'continue' pula para a próxima banana sem executar o resto do corpo.
+            // Atualiza cada banana do estoque
+            // continue pula para a próxima banana sem executar o resto do corpo
             for (int i = 0; i < MAX_BANANAS; i++)
             {
                 if (!bananas[i].active)
                     continue;
 
-                // Diminui o tempo de vida; quando zera, a banana some.
+                // Diminui o tempo de vida da banana
                 bananas[i].lifetime -= delta_time;
                 if (bananas[i].lifetime <= 0.0f)
                 {
@@ -328,7 +331,7 @@ int main()
                     continue;
                 }
 
-                // A banana está parada, então só precisamos checar a colisão com o jogador.
+                // A banana está parada, então só precisa checar a colisão com o jogador
                 Rectangle banana_hitbox = {bananas[i].position.x, bananas[i].position.y, BANANA_LARGURA, BANANA_ALTURA};
 
                 // Ao tocar no jogador a banana some. Se ele estiver atacando (J), ele
@@ -343,6 +346,7 @@ int main()
                     }
                 }
             }
+
             // 3. Colisão do Jogador e do inimigo com o mapa ('Z'), com o vento (' ') e com a escada ('S')
             for (int i = 0; i < LINHAS; i++)
             {
@@ -392,7 +396,7 @@ int main()
                         {
                             if ((IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) && player.velocity.x == 0)
                             {
-                                player.velocity.y = -450.0f;
+                                player.velocity.y = SUBIR_ESCADA;
                                 player.is_grounded = false;
                                 current_state = JUMPING;
                             }
@@ -406,12 +410,65 @@ int main()
                         {
                             if ((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) && player.velocity.x == 0)
                             {
-                                player.position.y += 2 * RENDER_SIZE;
+                                player.position.y += DESCER_ESCADA;
                                 current_state = JUMPING;
                             }
                         }
                     }
                 }
+            }
+
+            // Escadas do inimigo
+            if (exam.alive)
+            {
+                // Diminui o tempo de espera até chegar a zero
+                if (exam_cooldown_escada > 0.0f)
+                    exam_cooldown_escada -= delta_time;
+
+                // Descobre em qual bloquinho do mapa está o centro do inimigo
+                int col_exam = (int)((exam.position.x + RENDER_SIZE / 2.0f) / TAM_TILE);
+                int lin_exam = (int)((exam.position.y + RENDER_SIZE / 2.0f) / TAM_TILE);
+
+                // Lê o caractere do mapa nesse ponto, com cuidado para não sair da matriz
+                char tile_exam = ' ';
+                if (col_exam >= 0 && col_exam < COLUNAS && lin_exam >= 0 && lin_exam < LINHAS)
+                {
+                    tile_exam = mapa[lin_exam][col_exam];
+                }
+
+                // Quando o inimigo está apoiado no chão, a colisão deixa velocity.y em zero
+                // Se estiver caindo (> 0) ou subindo (< 0), não deve usar escada
+                bool no_chao = (exam.velocity.y == 0.0f);
+                bool em_escada = (tile_exam == 'S' || tile_exam == 'D');
+
+                // Só sorteia quando está numa escada, nao estava no frame anterior
+                // (acabou de chegar), está no chão e a espera acabou
+                if (em_escada && !exam_na_escada && no_chao && exam_cooldown_escada <= 0.0f)
+                {
+                    // GetRandomValue(1, 100) devolve um inteiro aleatório de 1 a 100
+                    // Se for menor ou igual à chance ele usa a escada
+                    if (GetRandomValue(1, 100) <= CHANCE_ESCADA)
+                    {
+                        if (tile_exam == 'S')
+                        {
+                            // SUBIR: mesmo impulso do jogador
+                            exam.velocity.y = SUBIR_ESCADA;
+                            exam.is_grounded = false;
+                        }
+                        else
+                        {
+                            // DESCER: mesmo deslocamento do jogador no tile 'D'
+                            exam.position.y += DESCER_ESCADA;
+                            exam.velocity.y = 0.0f;
+                            exam.is_grounded = false;
+                        }
+
+                        exam_cooldown_escada = COOLDOWN_ESCADA;
+                    }
+                }
+
+                // Guarda para o próximo frame se ele estava em uma escada
+                exam_na_escada = em_escada;
             }
 
             // TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
