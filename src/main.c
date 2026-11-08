@@ -102,6 +102,7 @@ int main()
     Animation anim_run = {.first_frame = 4, .last_frame = 7, .current_frame = 4, .step = 1, .speed = 0.08f, .duration_left = 0.08f, .type = REPEATING};
     Animation anim_jump = {.first_frame = 8, .last_frame = 11, .current_frame = 11, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT};
     Animation anim_attack = {.first_frame = 12, .last_frame = 15, .current_frame = 12, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT};
+    Animation anim_goblin = {.first_frame = 0, .last_frame = 3, .current_frame = 0, .step = 1,.speed = 0.08f, .duration_left = 0.08f, .type = REPEATING};
 
     // INICIALIZAÇÃO DOS ESTADOS DE ANIMAÇÃO E DAS DIREÇÕES
     PlayerState current_state = IDLE;
@@ -514,6 +515,8 @@ int main()
                 animation_update(current_anim);
             }
 
+            animation_update(&anim_goblin);
+
             break;
 
         case PAUSE:
@@ -587,7 +590,7 @@ int main()
             // Desenha o Inimigo
             if (exam.alive)
             {
-                Rectangle exam_frame = {0.0f, 0.0f, (float)exam_text.width, (float)exam_text.height};
+                Rectangle exam_frame = animation_frame(&anim_goblin, 4);
                 Rectangle desenho_exam = {exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
 
                 // ATUALIZA DIRECAO DO INIMIGO NA SPRITE(inverte)
