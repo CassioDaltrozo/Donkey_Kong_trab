@@ -85,7 +85,9 @@ int main(){
     InitWindow(settings.screen_width, settings.screen_height, "Donkey Kong do RU");
     InitAudioDevice();
     SetTargetFPS(settings.target_fps);
-
+    
+    Texture2D pause_text = LoadTexture("assets/menus/cara.png");
+    Texture2D menu_text = LoadTexture("assets/menus/tema_de_fundo.png");
     Texture2D player_text = LoadTexture("assets/jogador/jogador.png");
     Texture2D ladder_text = LoadTexture("assets/mapa/escada2.png");
     Texture2D exam_text = LoadTexture("assets/inimigos/inimigoteste.png");
@@ -94,8 +96,10 @@ int main(){
     Sound jumpSound = LoadSound("assets/sons/jump.mp3");
     Sound somMorte = LoadSound("assets/sons/sommorte.mp3");
     Music musiquinhaTeste = LoadMusicStream("assets/musica/musicafundo.mp3");
+    Music musiquinhaMenu = LoadMusicStream("assets/musica/bachsinfonia.mp3");
 
     PlayMusicStream(musiquinhaTeste);
+    PlayMusicStream(musiquinhaMenu);
 
     //LOOP PRINCIPAL
     while(!WindowShouldClose()){
@@ -106,12 +110,13 @@ int main(){
 
         switch(estado_jogo){
             case MENU:
+                UpdateMusicStream(musiquinhaMenu);
                 if (IsKeyPressed(KEY_ENTER)) estado_jogo = GAME;
                 break;
             case GAME:
                 if(IsKeyPressed(KEY_TAB)) estado_jogo = PAUSE; 
 
-                      UpdateMusicStream(musiquinhaTeste);
+                UpdateMusicStream(musiquinhaTeste);
 
                 float delta_time = GetFrameTime();
                 previous_state = current_state;
@@ -298,7 +303,9 @@ int main(){
 
         switch(estado_jogo){
             case MENU:
-                DrawText("Aperte ENTER ou ESC", COLUNAS * TAM_TILE / 2, LINHAS * TAM_TILE / 2, 20, RED); 
+                DrawTexture(menu_text, 0.0f, 0.0f, WHITE);
+                DrawText("Aperte ENTER para iniciar", 40, menu_text.height / 3, 30, DARKBLUE);
+                DrawText("Aperte ESC para sair", 30, menu_text.height / 2.5, 30, DARKBLUE);
                 break;
             case GAME:
                         // Desenha os elementos do mapa
@@ -362,7 +369,10 @@ int main(){
 
                 break;
             case PAUSE:
-                DrawText("Aperte ENTER ou Q", COLUNAS * TAM_TILE / 2, LINHAS * TAM_TILE / 2, 20, RED); 
+                ClearBackground(LIGHTGRAY);
+                DrawTexture(pause_text, 500.0f, 500.0f, LIGHTGRAY);
+                DrawText("JOGO PAUSADO", 100, 150, 100, DARKBROWN);
+                DrawText("Aperte ENTER ou Q Para Sair", 100, 300,50, DARKBROWN);
                 break;
         }
         EndDrawing();
@@ -370,8 +380,11 @@ int main(){
 
     //DESCARREGA MUSICA, TEXTURAS, FECHA AUDIO E JANELA
     UnloadMusicStream(musiquinhaTeste);
+    UnloadMusicStream(musiquinhaMenu);
     UnloadSound(jumpSound);
     UnloadSound(somMorte);
+    UnloadTexture(menu_text);
+    UnloadTexture(pause_text);
     UnloadTexture(ladder_text);
     UnloadTexture(player_text);
     UnloadTexture(exam_text);
