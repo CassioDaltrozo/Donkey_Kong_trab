@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "raymath.h"
 #include <math.h>
+#include "mecanicas.h"
 
 // Tamanho de cada frame dentro do ficheiro da imagem original (ex: 256x256 por frame)
 #define FRAME_WIDTH 256.0f
@@ -26,8 +27,8 @@
 #define SUBIR_ESCADA -450.0f
 
 #define DESCER_ESCADA (2 * RENDER_SIZE)
-int main()
-{
+
+int main(){
     // RENDERIZAÇÃO BÁSICA DO MAPA
     char mapa[LINHAS][COLUNAS];
 
@@ -98,7 +99,7 @@ int main()
     }
 
     // Inicialização das Animações
-    Animation anim_idle = {.first_frame = 0, .last_frame = 3, .current_frame = 0, .step = 1, .speed = 0.15f, .duration_left = 0.15f, .type = REPEATING};
+    Animation anim_idle = {.first_frame = 0, .last_frame = 3, .current_frame = 0, .step = 1, .speed = 0.08f, .duration_left = 0.08f, .type = REPEATING};
     Animation anim_run = {.first_frame = 4, .last_frame = 7, .current_frame = 4, .step = 1, .speed = 0.08f, .duration_left = 0.08f, .type = REPEATING};
     Animation anim_jump = {.first_frame = 8, .last_frame = 11, .current_frame = 11, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT};
     Animation anim_attack = {.first_frame = 12, .last_frame = 15, .current_frame = 12, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT};
@@ -155,93 +156,12 @@ int main()
             previous_state = current_state;
 
             // 1. Lógica, Controles e posição do Jogador
-            if (player.alive)
-            {
-                player.velocity.x = 0.0f;
-
-                if (!player.is_grounded)
-                {
-                    player.velocity.y += settings.gravity * delta_time;
-                }
-
-                if (IsKeyPressed(KEY_J))
-                {
-                    current_state = ATTACKING;
-                }
-
-                if (player.position.x < 0)
-                    player.position.x = 0;
-
-                if (player.position.x > (COLUNAS * TAM_TILE - RENDER_SIZE))
-                    player.position.x = (COLUNAS * TAM_TILE - RENDER_SIZE);
-
-                if (IsKeyDown(KEY_SPACE) && player.is_grounded)
-                {
-                    player.velocity.y = player.jump_force;
-                    player.is_grounded = false;
-                    current_state = JUMPING;
-                    PlaySound(jumpSound);
-                }
-
-                if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-                {
-                    if (player.is_grounded)
-                        current_state = RUNNING;
-
-                    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
-                    {
-                        player.velocity.x = -player.speed;
-                        player_direction = LEFT;
-                    }
-
-                    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-                    {
-                        player.velocity.x = player.speed;
-                        player_direction = RIGHT;
-                    }
-                }
-                else
-                {
-                    if (player.is_grounded && current_state == RUNNING)
-                    {
-                        current_state = IDLE;
-                    }
-                }
-
-                if ((current_state != ATTACKING || current_anim->current_frame == current_anim->last_frame) && player.is_grounded && player.velocity.x == 0.0f)
-                {
-                    current_state = IDLE;
-                }
-            }
-            else
-            {
-                if (IsKeyPressed(KEY_R))
-                    player.alive = true;
-            }
-
-            player.position.x += player.velocity.x * delta_time;
-            player.position.y += player.velocity.y * delta_time;
-
+            update_player(&player, &current_state, settings, &player_direction, jumpSound, delta_time);
+            
             // 2. Lógica e Colisão do Inimigo com o mapa
-            if (exam.alive)
-            {
-                exam.velocity.x = exam.speed * exam_direction;
-
-                if (!exam.is_grounded)
-                {
-                    exam.velocity.y += settings.gravity * delta_time;
-                }
-
-                exam.position.x += exam.velocity.x * delta_time;
-                exam.position.y += exam.velocity.y * delta_time;
-
-                exam_hitbox = (Rectangle){exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
-
-                if (exam.position.x <= 0 || exam.position.x >= (COLUNAS * TAM_TILE - RENDER_SIZE))
-                {
-                    exam_direction *= -1;
-                }
-            }
+            update_inimigo(&exam, settings, &exam_direction, delta_time);
+            
+            exam_hitbox = (Rectangle){exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
 
             // Macaco e bananas
             if (player.alive)
@@ -534,8 +454,9 @@ int main()
         switch(estado_jogo){
             case MENU:
                 DrawTexture(menu_text, 0.0f, 0.0f, WHITE);
-                DrawText("Aperte ENTER para iniciar", 40, menu_text.height / 3, 30, DARKBLUE);
-                DrawText("Aperte ESC para sair", 30, menu_text.height / 2.5, 30, DARKBLUE);
+                DrawText("ENTER para iniciar", 40, menu_text.height / 3, 30, DARKBLUE);
+                DrawText("R para ranking", 40, menu_text.height / 2.5, 30, DARKBLUE);
+                DrawText("ESC para sair", 40, menu_text.height / 2, 30, DARKBLUE);
                 break;
             case GAME:
                         // Desenha os elementos do mapa
