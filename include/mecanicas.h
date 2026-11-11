@@ -11,5 +11,6 @@
 
 void update_player(PlayerSettings *player, PlayerState *estado_player, GameSettings settings, Direction *direc, Sound som,  float time);
 void update_inimigo(Enemy *inimigo, GameSettings settings, Direction *direc, float time);
+void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru);
 
 #endif

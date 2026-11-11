@@ -92,3 +92,33 @@ void update_inimigo(Enemy *inimigo, GameSettings settings, Direction *direc, flo
                 }
             }
 }
+
+void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru){
+
+    Vector2 origem = {0.0f, 0.0f};
+    float rotacao = 0.0f;
+
+    for (int i = 0; i < LINHAS; i++)
+            {
+                for (int j = 0; j < COLUNAS; j++)
+                {
+                    Rectangle posicao_telha = {j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
+
+                    if (mapa[i][j] == 'Z')
+                    { // DESENHA CHAO
+                        Rectangle grama_frame = {0.0f, 0.0f, chao.width, chao.height};
+                        DrawTexturePro(chao, grama_frame, posicao_telha, origem, rotacao, WHITE);
+                    }
+                    else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D')
+                    { // DESENHA ESCADA
+                        Rectangle ladder_frame = {0.0f, 0.0f, escada.width, escada.height};
+                        DrawTexturePro(escada, ladder_frame, posicao_telha, origem, rotacao, WHITE);
+                    }
+                    else if (mapa[i][j] == 'F')
+                    { // DESENHA O RU
+                        Rectangle ru_frame = {0.0f, 0.0f, ru.width, ru.height};
+                        DrawTexturePro(ru, ru_frame, posicao_telha, origem, rotacao, YELLOW);
+                    }
+                }
+            }
+}

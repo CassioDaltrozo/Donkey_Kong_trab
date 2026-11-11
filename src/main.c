@@ -451,6 +451,7 @@ int main(){
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
+        //SWITCH 2: DESENHO
         switch(estado_jogo){
             case MENU:
                 DrawTexture(menu_text, 0.0f, 0.0f, WHITE);
@@ -458,91 +459,74 @@ int main(){
                 DrawText("R para ranking", 40, menu_text.height / 2.5, 30, DARKBLUE);
                 DrawText("ESC para sair", 40, menu_text.height / 2, 30, DARKBLUE);
                 break;
+
             case GAME:
-                        // Desenha os elementos do mapa
+            
                 Vector2 origem = {0.0f, 0.0f};
                 float rotacao = 0.0f;
 
-            for (int i = 0; i < LINHAS; i++)
-            {
-                for (int j = 0; j < COLUNAS; j++)
-                {
-                    Rectangle posicao_telha = {j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
+                desenha_mapa(mapa, grama_text, ladder_text, ru_text);
 
-                    if (mapa[i][j] == 'Z')
-                    { // DESENHA CHAO
-                        Rectangle grama_frame = {0.0f, 0.0f, grama_text.width, grama_text.height};
-                        DrawTexturePro(grama_text, grama_frame, posicao_telha, origem, rotacao, WHITE);
+
+                // Desenha o Jogador
+                if (player.alive)
+                {
+                    Rectangle player_frame = animation_frame(current_anim, 4);
+                    Rectangle desenho_player = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
+
+                    // ATULIZA DIRECAO DO PLAYER NA SPRITE (inverte)
+                    if (player_direction == LEFT)
+                    {
+                        player_frame.width = -player_frame.width;
                     }
-                    else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D')
-                    { // DESENHA ESCADA
-                        Rectangle ladder_frame = {0.0f, 0.0f, ladder_text.width, ladder_text.height};
-                        DrawTexturePro(ladder_text, ladder_frame, posicao_telha, origem, rotacao, WHITE);
+
+                    // DESENHA O PLAYER E HITBOX PARA TESTES
+                    DrawTexturePro(player_text, player_frame, desenho_player, origem, rotacao, WHITE);
+                    DrawRectangleLines((int)player_hitbox.x, (int)player_hitbox.y, (int)player_hitbox.width, (int)player_hitbox.height, GREEN);
+                }
+                else
+                {
+                    DrawText("VOCE MORREU! Pressione R para reiniciar", 150, 450, 20, RED);
+                }
+
+                // Desenha o Inimigo
+                if (exam.alive)
+                {
+                    Rectangle exam_frame = animation_frame(&anim_goblin, 4);
+                    Rectangle desenho_exam = {exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
+
+                    // ATUALIZA DIRECAO DO INIMIGO NA SPRITE(inverte)
+                    if (exam_direction == LEFT)
+                    {
+                        exam_frame.width = -exam_frame.width;
                     }
-                    else if (mapa[i][j] == 'F')
-                    { // DESENHA O RU
-                        Rectangle ru_frame = {0.0f, 0.0f, ru_text.width, ru_text.height};
-                        DrawTexturePro(ru_text, ru_frame, posicao_telha, origem, rotacao, YELLOW);
+
+                    // DESENHA O INIMIGO E HITBOX PARA TESTES
+                    DrawTexturePro(exam_text, exam_frame, desenho_exam, origem, rotacao, WHITE);
+                    DrawRectangleLines((int)exam_hitbox.x, (int)exam_hitbox.y, (int)exam_hitbox.width, (int)exam_hitbox.height, RED);
+                }
+
+                //desenha macaco
+                DrawRectangle((int)monkey.position.x, (int)monkey.position.y, (int)RENDER_SIZE, (int)RENDER_SIZE, BROWN);
+                for (int i = 0; i < MAX_BANANAS; i++)
+                {
+                    if (bananas[i].active)
+                    {
+                        DrawEllipse((int)(bananas[i].position.x + BANANA_LARGURA / 2.0f), (int)(bananas[i].position.y + BANANA_ALTURA / 2.0f), 8, 4, YELLOW);
+                        DrawRectangleLines((int)bananas[i].position.x, (int)bananas[i].position.y, (int)BANANA_LARGURA, (int)BANANA_ALTURA, RED);
                     }
                 }
-            }
 
-            // Desenha o Jogador
-            if (player.alive)
-            {
-                Rectangle player_frame = animation_frame(current_anim, 4);
-                Rectangle desenho_player = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
+                break;
 
-                // ATULIZA DIRECAO DO PLAYER NA SPRITE (inverte)
-                if (player_direction == LEFT)
-                {
-                    player_frame.width = -player_frame.width;
-                }
-
-                // DESENHA O PLAYER E HITBOX PARA TESTES
-                DrawTexturePro(player_text, player_frame, desenho_player, origem, rotacao, WHITE);
-                DrawRectangleLines((int)player_hitbox.x, (int)player_hitbox.y, (int)player_hitbox.width, (int)player_hitbox.height, GREEN);
-            }
-            else
-            {
-                DrawText("VOCE MORREU! Pressione R para reiniciar", 150, 450, 20, RED);
-            }
-
-            // Desenha o Inimigo
-            if (exam.alive)
-            {
-                Rectangle exam_frame = animation_frame(&anim_goblin, 4);
-                Rectangle desenho_exam = {exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
-
-                // ATUALIZA DIRECAO DO INIMIGO NA SPRITE(inverte)
-                if (exam_direction == LEFT)
-                {
-                    exam_frame.width = -exam_frame.width;
-                }
-
-                // DESENHA O INIMIGO E HITBOX PARA TESTES
-                DrawTexturePro(exam_text, exam_frame, desenho_exam, origem, rotacao, WHITE);
-                DrawRectangleLines((int)exam_hitbox.x, (int)exam_hitbox.y, (int)exam_hitbox.width, (int)exam_hitbox.height, RED);
-            }
-
-            DrawRectangle((int)monkey.position.x, (int)monkey.position.y, (int)RENDER_SIZE, (int)RENDER_SIZE, BROWN);
-            for (int i = 0; i < MAX_BANANAS; i++)
-            {
-                if (bananas[i].active)
-                {
-                    DrawEllipse((int)(bananas[i].position.x + BANANA_LARGURA / 2.0f), (int)(bananas[i].position.y + BANANA_ALTURA / 2.0f), 8, 4, YELLOW);
-                    DrawRectangleLines((int)bananas[i].position.x, (int)bananas[i].position.y, (int)BANANA_LARGURA, (int)BANANA_ALTURA, RED);
-                }
-            }
-
-            break;
-        case PAUSE:
-            ClearBackground(LIGHTGRAY);
+            case PAUSE:
+                ClearBackground(LIGHTGRAY);
                 DrawTexture(pause_text, 500.0f, 500.0f, LIGHTGRAY);
                 DrawText("JOGO PAUSADO", 100, 150, 100, DARKBROWN);
                 DrawText("Aperte ENTER ou Q Para Sair", 100, 300,50, DARKBROWN);
-            break;
+                break;
         }
+
         EndDrawing();
     }
 
