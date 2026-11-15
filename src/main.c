@@ -10,23 +10,21 @@
 #define FRAME_WIDTH 256.0f
 #define FRAME_HEIGHT 256.0f
 
-// Tamanho visual e de colisão no ecrã (igual ao bloquinho (tile) do mapa: 32x32)
-#define TAM_TILE 32.0f
-#define RENDER_SIZE 32.0f
-
 // Hitbox da banana
 #define BANANA_LARGURA 10.0f
 #define BANANA_ALTURA 6.0f
 
-#define MAX_INIM 6
-
 int main(){
     // RENDERIZAÇÃO BÁSICA DO MAPA
     char mapa[LINHAS][COLUNAS];
-
     int inim_qntd = 0;
 
-    if (carregaMapa("maps/mapa1.txt", mapa) == 0)
+    int fase = 1;
+    char caminho[50];
+
+    sprintf(caminho, "maps/mapa%d.txt", fase);
+
+    if (carregaMapa(caminho, mapa) == 0)
     {
         printf("Erro ao carregar o mapa!\n");
         return 0;
@@ -61,51 +59,12 @@ int main(){
         .hitbox = {0}
     };
 
+    Ru ru;
+
     Banana bananas[MAX_BANANAS] = {0};
 
-    int linha_ru = -1;
-
-    // Posicionamento inicial do player e do inimigo com base na matriz do mapa
-    for (int i = 0; i < LINHAS; i++)
-    {
-        for (int j = 0; j < COLUNAS; j++)
-        {
-            if (mapa[i][j] == 'P')
-            {
-                player.position = (Vector2){j * TAM_TILE, i * TAM_TILE};
-                mapa[i][j] = ' ';
-            }
-            else if (mapa[i][j] == 'E')
-            {
-                exams[inim_qntd] = (Enemy){
-                    .position = (Vector2){j * TAM_TILE, i * TAM_TILE},
-                    .velocity = (Vector2){0.0f, 0.0f},
-                    .speed = 90.0f,
-                    .is_grounded = false,
-                    .alive = true,
-                    .direcao = LEFT,
-                    .cooldown = 0.0f
-                };
-
-                inim_qntd++;
-                if (inim_qntd > MAX_INIM)
-                    inim_qntd = MAX_INIM;
-                
-                mapa[i][j] = ' ';
-            }
-            else if (mapa[i][j] == 'M')
-            {
-                monkey.position = (Vector2){j * TAM_TILE, i * TAM_TILE};
-                monkey.hitbox = (Rectangle){monkey.position.x, monkey.position.y, RENDER_SIZE, RENDER_SIZE};
-                mapa[i][j] = ' ';
-            }
-            else if (mapa[i][j] == 'F')
-            {
-                linha_ru = i;
-            }
-        }
-    }
-
+    posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
+    
     // Inicialização das Animações
     Animation anim_idle = {.first_frame = 0, .last_frame = 3, .current_frame = 0, .step = 1, .speed = 0.08f, .duration_left = 0.08f, .type = REPEATING};
     Animation anim_run = {.first_frame = 4, .last_frame = 7, .current_frame = 4, .step = 1, .speed = 0.08f, .duration_left = 0.08f, .type = REPEATING};
@@ -217,7 +176,7 @@ int main(){
                         pode_jogar = false;
 
                     // 2. o chão achado é o da plataforma do RU
-                    if (pode_jogar && linha_chao <= linha_ru + 1)
+                    if (pode_jogar && linha_chao <= ru.linha_ru + 1)
                         pode_jogar = false;
 
                     // 3. a banana cairia em cima do jogador
@@ -298,6 +257,14 @@ int main(){
             if (player.alive && CheckCollisionRecs(player.hitbox, monkey.hitbox)){
                 player.alive = false;
                 PlaySound(somMorte);
+            }
+
+            if (player.alive && CheckCollisionRecs(player.hitbox, ru.hitbox)){
+                fase++;
+                sprintf(caminho, "maps/mapa%d.txt", fase);
+                carregaMapa(caminho, mapa);
+                inim_qntd = 0;
+                posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
             }
 
             // TROCA ESTADO DE ANIMAÇÃO DO JOGADOR

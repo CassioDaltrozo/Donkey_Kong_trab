@@ -123,3 +123,47 @@ int achaChao(char mapa[LINHAS][COLUNAS], int col, int linha_inicial, int max_des
 
     return -1;
 }
+
+void posicoes_mapa(PlayerSettings *player, Enemy exams[], int *inim_qntd, char mapa[LINHAS][COLUNAS], Monkey *monkey, Ru *ru){
+    // Posicionamento inicial do player e do inimigo com base na matriz do mapa
+    for (int i = 0; i < LINHAS; i++)
+    {
+        for (int j = 0; j < COLUNAS; j++)
+        {
+            if (mapa[i][j] == 'P')
+            {
+                player->position = (Vector2){j * TAM_TILE, i * TAM_TILE};
+                mapa[i][j] = ' ';
+            }
+            else if (mapa[i][j] == 'E')
+            {
+                exams[*inim_qntd] = (Enemy){
+                    .position = (Vector2){j * TAM_TILE, i * TAM_TILE},
+                    .velocity = (Vector2){0.0f, 0.0f},
+                    .speed = 90.0f,
+                    .is_grounded = false,
+                    .alive = true,
+                    .direcao = LEFT,
+                    .cooldown = 0.0f
+                };
+
+                (*inim_qntd)++;
+                if (*inim_qntd > MAX_INIM)
+                    *inim_qntd = MAX_INIM;
+                
+                mapa[i][j] = ' ';
+            }
+            else if (mapa[i][j] == 'M')
+            {
+                monkey->position = (Vector2){j * TAM_TILE, i * TAM_TILE};
+                monkey->hitbox = (Rectangle){monkey->position.x, monkey->position.y, RENDER_SIZE, RENDER_SIZE};
+                mapa[i][j] = ' ';
+            }
+            else if (mapa[i][j] == 'F')
+            {
+                ru->hitbox = (Rectangle){j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
+                ru->linha_ru = i;
+            }
+        }
+    }
+}

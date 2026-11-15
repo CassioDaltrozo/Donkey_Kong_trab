@@ -8,9 +8,9 @@
 #define DESCER_ESCADA (2 * RENDER_SIZE)
 
 // Chance de 0 a 100 do inimigo usar a escada
-#define CHANCE_ESCADA 60
+#define CHANCE_ESCADA 70
 // Tempo antes do inimigo usar outra escada
-#define COOLDOWN_ESCADA 2.0f
+#define COOLDOWN_ESCADA 1.5f
 
 void update_player(PlayerSettings *player, GameSettings settings, Sound som,  float time){
     if (player->alive)
