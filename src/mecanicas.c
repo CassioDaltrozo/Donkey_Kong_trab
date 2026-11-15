@@ -12,7 +12,7 @@
 // Tempo antes do inimigo usar outra escada
 #define COOLDOWN_ESCADA 2.0f
 
-void update_player(PlayerSettings *player, PlayerState *estado_player, GameSettings settings, Sound som,  float time){
+void update_player(PlayerSettings *player, GameSettings settings, Sound som,  float time){
     if (player->alive)
             {
                 player->velocity.x = 0.0f;
@@ -24,7 +24,7 @@ void update_player(PlayerSettings *player, PlayerState *estado_player, GameSetti
 
                 if (IsKeyPressed(KEY_J))
                 {
-                    *estado_player = ATTACKING;
+                    player->estado_player = ATTACKING;
                 }
 
                 if (player->position.x < 0)
@@ -37,14 +37,14 @@ void update_player(PlayerSettings *player, PlayerState *estado_player, GameSetti
                 {
                     player->velocity.y = player->jump_force;
                     player->is_grounded = false;
-                    *estado_player = JUMPING;
+                    player->estado_player = JUMPING;
                     PlaySound(som);
                 }
 
                 if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
                 {
                     if (player->is_grounded)
-                        *estado_player = RUNNING;
+                        player->estado_player = RUNNING;
 
                     if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
                     {
@@ -60,15 +60,15 @@ void update_player(PlayerSettings *player, PlayerState *estado_player, GameSetti
                 }
                 else
                 {
-                    if (player->is_grounded && *estado_player == RUNNING)
+                    if (player->is_grounded && player->estado_player == RUNNING)
                     {
-                        *estado_player = IDLE;
+                        player->estado_player = IDLE;
                     }
                 }
 
-                if ((*estado_player != ATTACKING && player->is_grounded && player->velocity.x == 0.0f) || (*estado_player == JUMPING && player->is_grounded && player->velocity.x == 0.0f))
+                if ((player->estado_player != ATTACKING && player->is_grounded && player->velocity.x == 0.0f) || (player->estado_player == JUMPING && player->is_grounded && player->velocity.x == 0.0f))
                 {
-                    *estado_player = IDLE;
+                    player->estado_player = IDLE;
                 }
             }
             else
@@ -179,7 +179,7 @@ void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, 
             }
 }
 
-void checa_colisoes(char mapa[LINHAS][COLUNAS], PlayerSettings *player, PlayerState *estado_player, Enemy inimigos[], int qnt_inim){
+void checa_colisoes(char mapa[LINHAS][COLUNAS], PlayerSettings *player, Enemy inimigos[], int qnt_inim){
             // 3. Colisão do Jogador e do inimigo com o mapa ('Z'), com o vento (' ') e com a escada ('S')
             for (int i = 0; i < LINHAS; i++)
             {
@@ -233,7 +233,7 @@ void checa_colisoes(char mapa[LINHAS][COLUNAS], PlayerSettings *player, PlayerSt
                             {
                                 player->velocity.y = SUBIR_ESCADA;
                                 player->is_grounded = false;
-                                *estado_player = JUMPING;
+                                player->estado_player = JUMPING;
                             }
                         }
                     }
@@ -246,7 +246,7 @@ void checa_colisoes(char mapa[LINHAS][COLUNAS], PlayerSettings *player, PlayerSt
                             if ((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) && player->velocity.x == 0)
                             {
                                 player->position.y += DESCER_ESCADA;
-                                *estado_player = JUMPING;
+                                player->estado_player = JUMPING;
                             }
                         }
                     }

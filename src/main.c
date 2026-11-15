@@ -18,11 +18,6 @@
 #define BANANA_LARGURA 10.0f
 #define BANANA_ALTURA 6.0f
 
-// subida na escada
-#define SUBIR_ESCADA -450.0f
-
-#define DESCER_ESCADA (2 * RENDER_SIZE)
-
 #define MAX_INIM 6
 
 int main(){
@@ -54,7 +49,8 @@ int main(){
         .speed = 100.0f,
         .jump_force = -380.0f,
         .direcao = RIGHT,
-        .hitbox = {0.0f}
+        .hitbox = {0.0f},
+        .estado_player = IDLE
     };
 
     Enemy exams[MAX_INIM];
@@ -116,9 +112,9 @@ int main(){
     Animation anim_jump = {.first_frame = 8, .last_frame = 11, .current_frame = 11, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT};
     Animation anim_attack = {.first_frame = 12, .last_frame = 15, .current_frame = 12, .step = 1, .speed = 0.06f, .duration_left = 0.06f, .type = ONESHOT};
     Animation anim_goblin = {.first_frame = 0, .last_frame = 3, .current_frame = 0, .step = 1,.speed = 0.08f, .duration_left = 0.08f, .type = REPEATING};
+    Animation anim_macaco = {.first_frame = 0, .last_frame = 3, .current_frame = 0, .step = 1,.speed = 1.0f, .duration_left = 0.08f, .type = REPEATING};
 
     // INICIALIZAÇÃO DOS ESTADOS DE ANIMAÇÃO E DAS DIREÇÕES
-    PlayerState current_state = IDLE;
     PlayerState previous_state = IDLE;
     Animation *current_anim = &anim_idle;
 
@@ -132,6 +128,7 @@ int main(){
     Texture2D player_text = LoadTexture("assets/jogador/jogador.png");
     Texture2D ladder_text = LoadTexture("assets/mapa/escada2.png");
     Texture2D exam_text = LoadTexture("assets/inimigos/inimigoteste.png");
+    Texture2D macaco_text = LoadTexture("assets/inimigos/macaco.png");
     Texture2D grama_text = LoadTexture("assets/mapa/grama2.png");
     Texture2D ru_text = LoadTexture("assets/mapa/ru.png");
     Sound jumpSound = LoadSound("assets/sons/jump.mp3");
@@ -145,7 +142,6 @@ int main(){
     // LOOP PRINCIPAL
     while (!WindowShouldClose())
     {
-
         // Hitboxes proporcionais ao tamanho de 32x32
         player.hitbox = (Rectangle){player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
 
@@ -160,10 +156,10 @@ int main(){
                 UpdateMusicStream(musiquinhaTeste);
 
             float delta_time = GetFrameTime();
-            previous_state = current_state;
+            previous_state = player.estado_player;
 
             // 1. Lógica, Controles e posição do Jogador
-            update_player(&player, &current_state, settings, jumpSound, delta_time);
+            update_player(&player, settings, jumpSound, delta_time);
             
             // 2. Lógica e Colisão do Inimigo com o mapa
             for(int i = 0; i < inim_qntd; i++){
@@ -270,7 +266,7 @@ int main(){
                 if (player.alive && CheckCollisionRecs(player.hitbox, bananas[i].hitbox))
                 {
                     bananas[i].active = false;
-                    if (current_state != ATTACKING)
+                    if (player.estado_player != ATTACKING)
                     {
                         player.alive = false;
                         PlaySound(somMorte);
@@ -278,14 +274,14 @@ int main(){
                 }
             }
 
-            checa_colisoes(mapa, &player, &current_state, exams, inim_qntd);
+            checa_colisoes(mapa, &player, exams, inim_qntd);
 
 
             // TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
             for(int i = 0; i < inim_qntd; i++){
                 if (player.alive && CheckCollisionRecs(player.hitbox, exams[i].hitbox))
                 {
-                    if (current_state == ATTACKING)
+                    if (player.estado_player == ATTACKING)
                     {
                         exams[i].alive = false;
                         inim_qntd--;
@@ -305,7 +301,7 @@ int main(){
             }
 
             // TROCA ESTADO DE ANIMAÇÃO DO JOGADOR
-            switch (current_state)
+            switch (player.estado_player)
             {
             case IDLE:
                 current_anim = &anim_idle;
@@ -323,7 +319,7 @@ int main(){
 
             if (player.alive)
             {
-                if (current_state != previous_state)
+                if (player.estado_player != previous_state)
                 {
                     reset_animation(current_anim);
                 }
@@ -331,6 +327,7 @@ int main(){
             }
 
             animation_update(&anim_goblin);
+            animation_update(&anim_macaco);
 
             break;
 
@@ -404,7 +401,10 @@ int main(){
                 }
 
                 //desenha macaco
-                DrawRectangle((int)monkey.position.x, (int)monkey.position.y, (int)RENDER_SIZE, (int)RENDER_SIZE, BROWN);
+                Rectangle macaco_frame = animation_frame(&anim_macaco, 4);
+                Rectangle desenho_macaco = {monkey.position.x, monkey.position.y, RENDER_SIZE, RENDER_SIZE};
+                DrawTexturePro(macaco_text, macaco_frame, desenho_macaco, origem, rotacao, WHITE);
+
                 for (int i = 0; i < MAX_BANANAS; i++)
                 {
                     if (bananas[i].active)

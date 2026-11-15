@@ -29,6 +29,14 @@ typedef enum Direction
     LEFT = -1,
     RIGHT = 1,
 } Direction;
+
+typedef enum PlayerState
+{
+    IDLE,
+    RUNNING,
+    JUMPING,
+    ATTACKING
+} PlayerState;
 typedef struct PlayerSettings
 {
     float speed;
@@ -39,6 +47,8 @@ typedef struct PlayerSettings
     bool is_grounded;
     bool alive;
     Direction direcao;
+    PlayerState estado_player;
+
 } PlayerSettings;
 
 typedef struct Enemy
@@ -70,14 +80,6 @@ typedef struct Monkey
     float throw_cooldown;
     float throw_interval;
 } Monkey;
-
-typedef enum PlayerState
-{
-    IDLE,
-    RUNNING,
-    JUMPING,
-    ATTACKING
-} PlayerState;
 
 typedef enum AnimationType
 {
