@@ -24,28 +24,41 @@ typedef enum GameState
     PAUSE,
 } GameState;
 
+typedef enum Direction
+{
+    LEFT = -1,
+    RIGHT = 1,
+} Direction;
 typedef struct PlayerSettings
 {
     float speed;
     float jump_force;
     Vector2 velocity;
     Vector2 position;
+    Rectangle hitbox;
     bool is_grounded;
     bool alive;
+    Direction direcao;
 } PlayerSettings;
 
 typedef struct Enemy
 {
     Vector2 position;
     Vector2 velocity;
+    Rectangle hitbox;
+    float cooldown;
     float speed;
     bool is_grounded;
+    bool na_escada;
     bool alive;
+    Direction direcao;
+
 } Enemy;
 
 typedef struct Banana
 {
     Vector2 position;
+    Rectangle hitbox;
     float lifetime;
     bool active;
 } Banana;
@@ -53,15 +66,10 @@ typedef struct Banana
 typedef struct Monkey
 {
     Vector2 position;
+    Rectangle hitbox;
     float throw_cooldown;
     float throw_interval;
 } Monkey;
-
-typedef enum Direction
-{
-    LEFT = -1,
-    RIGHT = 1,
-} Direction;
 
 typedef enum PlayerState
 {

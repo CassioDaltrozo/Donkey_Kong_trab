@@ -18,19 +18,18 @@
 #define BANANA_LARGURA 10.0f
 #define BANANA_ALTURA 6.0f
 
-// Chance de 0 a 100 do inimigo usar a escada
-#define CHANCE_ESCADA 60
-// Tempo antes do inimigo usar outra escada
-#define COOLDOWN_ESCADA 2.0f
-
 // subida na escada
 #define SUBIR_ESCADA -450.0f
 
 #define DESCER_ESCADA (2 * RENDER_SIZE)
 
+#define MAX_INIM 6
+
 int main(){
     // RENDERIZAÇÃO BÁSICA DO MAPA
     char mapa[LINHAS][COLUNAS];
+
+    int inim_qntd = 0;
 
     if (carregaMapa("maps/mapa1.txt", mapa) == 0)
     {
@@ -54,17 +53,17 @@ int main(){
         .velocity = {0.0f, 0.0f},
         .speed = 100.0f,
         .jump_force = -380.0f,
+        .direcao = RIGHT,
+        .hitbox = {0.0f}
     };
 
-    Enemy exam = {
-        .velocity = {0.0f, 0.0f},
-        .speed = 90.0f,
-        .is_grounded = false,
-        .alive = true};
+    Enemy exams[MAX_INIM];
 
     Monkey monkey = {
         .throw_interval = 3.0f,
-        .throw_cooldown = 3.0f};
+        .throw_cooldown = 3.0f,
+        .hitbox = {0}
+    };
 
     Banana bananas[MAX_BANANAS] = {0};
 
@@ -82,13 +81,26 @@ int main(){
             }
             else if (mapa[i][j] == 'E')
             {
-                exam.position = (Vector2){j * TAM_TILE, i * TAM_TILE};
+                exams[inim_qntd] = (Enemy){
+                    .position = (Vector2){j * TAM_TILE, i * TAM_TILE},
+                    .velocity = (Vector2){0.0f, 0.0f},
+                    .speed = 90.0f,
+                    .is_grounded = false,
+                    .alive = true,
+                    .direcao = LEFT,
+                    .cooldown = 0.0f
+                };
+
+                inim_qntd++;
+                if (inim_qntd > MAX_INIM)
+                    inim_qntd = MAX_INIM;
+                
                 mapa[i][j] = ' ';
             }
             else if (mapa[i][j] == 'M')
             {
-                monkey.position = (Vector2){
-                    j * TAM_TILE, i * TAM_TILE};
+                monkey.position = (Vector2){j * TAM_TILE, i * TAM_TILE};
+                monkey.hitbox = (Rectangle){monkey.position.x, monkey.position.y, RENDER_SIZE, RENDER_SIZE};
                 mapa[i][j] = ' ';
             }
             else if (mapa[i][j] == 'F')
@@ -108,10 +120,6 @@ int main(){
     // INICIALIZAÇÃO DOS ESTADOS DE ANIMAÇÃO E DAS DIREÇÕES
     PlayerState current_state = IDLE;
     PlayerState previous_state = IDLE;
-    Direction player_direction = RIGHT;
-    Direction exam_direction = LEFT;
-    bool exam_na_escada = false;
-    float exam_cooldown_escada = 0.0f;
     Animation *current_anim = &anim_idle;
 
     // INICIALIZAÇÃO DA JANELA, AUDIO, FPS E TEXTURAS
@@ -139,8 +147,7 @@ int main(){
     {
 
         // Hitboxes proporcionais ao tamanho de 32x32
-        Rectangle player_hitbox = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
-        Rectangle exam_hitbox = {0};
+        player.hitbox = (Rectangle){player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
 
         switch(estado_jogo){
             case MENU:
@@ -156,12 +163,13 @@ int main(){
             previous_state = current_state;
 
             // 1. Lógica, Controles e posição do Jogador
-            update_player(&player, &current_state, settings, &player_direction, jumpSound, delta_time);
+            update_player(&player, &current_state, settings, jumpSound, delta_time);
             
             // 2. Lógica e Colisão do Inimigo com o mapa
-            update_inimigo(&exam, settings, &exam_direction, delta_time);
-            
-            exam_hitbox = (Rectangle){exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
+            for(int i = 0; i < inim_qntd; i++){
+                update_inimigo(&exams[i], settings, delta_time, mapa);
+                exams[i].hitbox = (Rectangle){exams[i].position.x, exams[i].position.y, RENDER_SIZE, RENDER_SIZE};
+                }
 
             // Macaco e bananas
             if (player.alive)
@@ -183,7 +191,7 @@ int main(){
                     }
                     else
                     {
-                        frente = player_direction * 3.0f * TAM_TILE;
+                        frente = player.direcao * 3.0f * TAM_TILE;
                     }
                     float alvo_x = player.position.x + frente;
 
@@ -255,11 +263,11 @@ int main(){
                 }
 
                 // A banana está parada, então só precisa checar a colisão com o jogador
-                Rectangle banana_hitbox = {bananas[i].position.x, bananas[i].position.y, BANANA_LARGURA, BANANA_ALTURA};
+                bananas[i].hitbox = (Rectangle){bananas[i].position.x, bananas[i].position.y, BANANA_LARGURA, BANANA_ALTURA};
 
                 // Ao tocar no jogador a banana some. Se ele estiver atacando (J), ele
                 // destrói a banana e sobrevive; se não, ele morre.
-                if (player.alive && CheckCollisionRecs(player_hitbox, banana_hitbox))
+                if (player.alive && CheckCollisionRecs(player.hitbox, bananas[i].hitbox))
                 {
                     bananas[i].active = false;
                     if (current_state != ATTACKING)
@@ -270,143 +278,30 @@ int main(){
                 }
             }
 
-            // 3. Colisão do Jogador e do inimigo com o mapa ('Z'), com o vento (' ') e com a escada ('S')
-            for (int i = 0; i < LINHAS; i++)
-            {
-                for (int j = 0; j < COLUNAS; j++)
-                {
-                    Rectangle tileRect = {j * TAM_TILE, i * TAM_TILE, TAM_TILE, TAM_TILE};
+            checa_colisoes(mapa, &player, &current_state, exams, inim_qntd);
 
-                    if (mapa[i][j] == 'Z')
-                    {
-                        // COLISAO DO PLAYER COM O CHAO
-                        if (CheckCollisionRecs(player_hitbox, tileRect))
-                        {
-                            if (player.velocity.y >= 0)
-                            {
-                                player.position.y = (i * TAM_TILE) - RENDER_SIZE;
-                                player.velocity.y = 0.0f;
-                                player.is_grounded = true;
-                            }
-                        }
-
-                        // COLISAO DO INIMIGO COM O CHAO
-                        if (CheckCollisionRecs(exam_hitbox, tileRect))
-                        {
-                            if (exam.velocity.y >= 0)
-                            {
-                                exam.position.y = (i * TAM_TILE) - RENDER_SIZE;
-                                exam.velocity.y = 0.0f;
-                                exam.is_grounded = true;
-                            }
-                        }
-                        else
-                            exam.is_grounded = false;
-                    }
-                    // bug aleatorio do player corrigido
-                    if (mapa[i][j] == ' ')
-                    {
-                        if (CheckCollisionRecs(player_hitbox, tileRect) && player.velocity.y == 0)
-                        {
-                            player.is_grounded = false;
-                        }
-                    }
-
-                    // subindo escada com player no s
-                    if (mapa[i][j] == 'S')
-                    {
-                        if (CheckCollisionRecs(player_hitbox, tileRect))
-                        {
-                            if ((IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) && player.velocity.x == 0)
-                            {
-                                player.velocity.y = SUBIR_ESCADA;
-                                player.is_grounded = false;
-                                current_state = JUMPING;
-                            }
-                        }
-                    }
-
-                    // descendo escada com player no d
-                    if (mapa[i][j] == 'D')
-                    {
-                        if (CheckCollisionRecs(player_hitbox, tileRect))
-                        {
-                            if ((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) && player.velocity.x == 0)
-                            {
-                                player.position.y += DESCER_ESCADA;
-                                current_state = JUMPING;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Escadas do inimigo
-            if (exam.alive)
-            {
-                // Diminui o tempo de espera até chegar a zero
-                if (exam_cooldown_escada > 0.0f)
-                    exam_cooldown_escada -= delta_time;
-
-                // Descobre em qual bloquinho do mapa está o centro do inimigo
-                int col_exam = (int)((exam.position.x + RENDER_SIZE / 2.0f) / TAM_TILE);
-                int lin_exam = (int)((exam.position.y + RENDER_SIZE / 2.0f) / TAM_TILE);
-
-                // Lê o caractere do mapa nesse ponto, com cuidado para não sair da matriz
-                char tile_exam = ' ';
-                if (col_exam >= 0 && col_exam < COLUNAS && lin_exam >= 0 && lin_exam < LINHAS)
-                {
-                    tile_exam = mapa[lin_exam][col_exam];
-                }
-
-                // Quando o inimigo está apoiado no chão, a colisão deixa velocity.y em zero
-                // Se estiver caindo (> 0) ou subindo (< 0), não deve usar escada
-                bool no_chao = (exam.velocity.y == 0.0f);
-                bool em_escada = (tile_exam == 'S' || tile_exam == 'D');
-
-                // Só sorteia quando está numa escada, nao estava no frame anterior
-                // (acabou de chegar), está no chão e a espera acabou
-                if (em_escada && !exam_na_escada && no_chao && exam_cooldown_escada <= 0.0f)
-                {
-                    // GetRandomValue(1, 100) devolve um inteiro aleatório de 1 a 100
-                    // Se for menor ou igual à chance ele usa a escada
-                    if (GetRandomValue(1, 100) <= CHANCE_ESCADA)
-                    {
-                        if (tile_exam == 'S')
-                        {
-                            // SUBIR: mesmo impulso do jogador
-                            exam.velocity.y = SUBIR_ESCADA;
-                            exam.is_grounded = false;
-                        }
-                        else
-                        {
-                            // DESCER: mesmo deslocamento do jogador no tile 'D'
-                            exam.position.y += DESCER_ESCADA;
-                            exam.velocity.y = 0.0f;
-                            exam.is_grounded = false;
-                        }
-
-                        exam_cooldown_escada = COOLDOWN_ESCADA;
-                    }
-                }
-
-                // Guarda para o próximo frame se ele estava em uma escada
-                exam_na_escada = em_escada;
-            }
 
             // TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
-            if (player.alive && CheckCollisionRecs(player_hitbox, exam_hitbox))
-            {
-                if (current_state == ATTACKING)
+            for(int i = 0; i < inim_qntd; i++){
+                if (player.alive && CheckCollisionRecs(player.hitbox, exams[i].hitbox))
                 {
-                    exam.alive = false;
-                    PlaySound(somMorte);
+                    if (current_state == ATTACKING)
+                    {
+                        exams[i].alive = false;
+                        inim_qntd--;
+                        PlaySound(somMorte);
+                    }
+                    else
+                    {
+                        player.alive = false;
+                        PlaySound(somMorte);
+                    }
                 }
-                else
-                {
-                    player.alive = false;
-                    PlaySound(somMorte);
-                }
+            }
+
+            if (player.alive && CheckCollisionRecs(player.hitbox, monkey.hitbox)){
+                player.alive = false;
+                PlaySound(somMorte);
             }
 
             // TROCA ESTADO DE ANIMAÇÃO DO JOGADOR
@@ -475,14 +370,14 @@ int main(){
                     Rectangle desenho_player = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
 
                     // ATULIZA DIRECAO DO PLAYER NA SPRITE (inverte)
-                    if (player_direction == LEFT)
+                    if (player.direcao == LEFT)
                     {
                         player_frame.width = -player_frame.width;
                     }
 
                     // DESENHA O PLAYER E HITBOX PARA TESTES
                     DrawTexturePro(player_text, player_frame, desenho_player, origem, rotacao, WHITE);
-                    DrawRectangleLines((int)player_hitbox.x, (int)player_hitbox.y, (int)player_hitbox.width, (int)player_hitbox.height, GREEN);
+                    DrawRectangleLines((int)player.hitbox.x, (int)player.hitbox.y, (int)player.hitbox.width, (int)player.hitbox.height, GREEN);
                 }
                 else
                 {
@@ -490,20 +385,22 @@ int main(){
                 }
 
                 // Desenha o Inimigo
-                if (exam.alive)
-                {
-                    Rectangle exam_frame = animation_frame(&anim_goblin, 4);
-                    Rectangle desenho_exam = {exam.position.x, exam.position.y, RENDER_SIZE, RENDER_SIZE};
-
-                    // ATUALIZA DIRECAO DO INIMIGO NA SPRITE(inverte)
-                    if (exam_direction == LEFT)
+                for(int i = 0; i < inim_qntd; i++){
+                    if (exams[i].alive)
                     {
-                        exam_frame.width = -exam_frame.width;
-                    }
+                        Rectangle exam_frame = animation_frame(&anim_goblin, 4);
+                        Rectangle desenho_exam = {exams[i].position.x, exams[i].position.y, RENDER_SIZE, RENDER_SIZE};
 
-                    // DESENHA O INIMIGO E HITBOX PARA TESTES
-                    DrawTexturePro(exam_text, exam_frame, desenho_exam, origem, rotacao, WHITE);
-                    DrawRectangleLines((int)exam_hitbox.x, (int)exam_hitbox.y, (int)exam_hitbox.width, (int)exam_hitbox.height, RED);
+                        // ATUALIZA DIRECAO DO INIMIGO NA SPRITE(inverte)
+                        if (exams[i].direcao == LEFT)
+                        {
+                            exam_frame.width = -exam_frame.width;
+                        }
+
+                        // DESENHA O INIMIGO E HITBOX PARA TESTES
+                        DrawTexturePro(exam_text, exam_frame, desenho_exam, origem, rotacao, WHITE);
+                        DrawRectangleLines((int)exams[i].hitbox.x, (int)exams[i].hitbox.y, (int)exams[i].hitbox.width, (int)exams[i].hitbox.height, RED);
+                    }
                 }
 
                 //desenha macaco
