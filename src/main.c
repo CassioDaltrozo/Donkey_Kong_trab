@@ -81,7 +81,7 @@ int main(){
     InitWindow(settings.screen_width, settings.screen_height, "Donkey Kong do RU");
     InitAudioDevice();
     SetTargetFPS(settings.target_fps);
-    
+
     Texture2D pause_text = LoadTexture("assets/menus/cara.png");
     Texture2D menu_text = LoadTexture("assets/menus/tema_de_fundo.png");
     Texture2D player_text = LoadTexture("assets/jogador/jogador.png");
@@ -104,15 +104,18 @@ int main(){
         // Hitboxes proporcionais ao tamanho de 32x32
         player.hitbox = (Rectangle){player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
 
-        switch(estado_jogo){
-            case MENU:
-                UpdateMusicStream(musiquinhaMenu);
-                if (IsKeyPressed(KEY_ENTER)) estado_jogo = GAME;
-                break;
-            case GAME:
-                if(IsKeyPressed(KEY_TAB)) estado_jogo = PAUSE; 
+        switch (estado_jogo)
+        {
+        case MENU:
+            UpdateMusicStream(musiquinhaMenu);
+            if (IsKeyPressed(KEY_ENTER))
+                estado_jogo = GAME;
+            break;
+        case GAME:
+            if (IsKeyPressed(KEY_TAB))
+                estado_jogo = PAUSE;
 
-                UpdateMusicStream(musiquinhaTeste);
+            UpdateMusicStream(musiquinhaTeste);
 
             float delta_time = GetFrameTime();
             previous_state = player.estado_player;
@@ -310,28 +313,28 @@ int main(){
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        //SWITCH 2: DESENHO
-        switch(estado_jogo){
-            case MENU:
-                DrawTexture(menu_text, 0.0f, 0.0f, WHITE);
-                DrawText("ENTER para iniciar", 40, menu_text.height / 3, 30, DARKBLUE);
-                DrawText("R para ranking", 40, menu_text.height / 2.5, 30, DARKBLUE);
-                DrawText("ESC para sair", 40, menu_text.height / 2, 30, DARKBLUE);
-                break;
+        // SWITCH 2: DESENHO
+        switch (estado_jogo)
+        {
+        case MENU:
+            DrawTexture(menu_text, 0.0f, 0.0f, WHITE);
+            DrawText("ENTER para iniciar", 40, menu_text.height / 3, 30, DARKBLUE);
+            DrawText("R para ranking", 40, menu_text.height / 2.5, 30, DARKBLUE);
+            DrawText("ESC para sair", 40, menu_text.height / 2, 30, DARKBLUE);
+            break;
 
-            case GAME:
-            
-                Vector2 origem = {0.0f, 0.0f};
-                float rotacao = 0.0f;
+        case GAME:
 
-                desenha_mapa(mapa, grama_text, ladder_text, ru_text);
+            Vector2 origem = {0.0f, 0.0f};
+            float rotacao = 0.0f;
 
+            desenha_mapa(mapa, grama_text, ladder_text, ru_text);
 
-                // Desenha o Jogador
-                if (player.alive)
-                {
-                    Rectangle player_frame = animation_frame(current_anim, 4);
-                    Rectangle desenho_player = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
+            // Desenha o Jogador
+            if (player.alive)
+            {
+                Rectangle player_frame = animation_frame(current_anim, 4);
+                Rectangle desenho_player = {player.position.x, player.position.y, RENDER_SIZE, RENDER_SIZE};
 
                     // ATULIZA DIRECAO DO PLAYER NA SPRITE (inverte)
                     if (player.direcao == LEFT)
@@ -381,14 +384,14 @@ int main(){
                     }
                 }
 
-                break;
+            break;
 
-            case PAUSE:
-                ClearBackground(LIGHTGRAY);
-                DrawTexture(pause_text, 500.0f, 500.0f, LIGHTGRAY);
-                DrawText("JOGO PAUSADO", 100, 150, 100, DARKBROWN);
-                DrawText("Aperte ENTER ou Q Para Sair", 100, 300,50, DARKBROWN);
-                break;
+        case PAUSE:
+            ClearBackground(LIGHTGRAY);
+            DrawTexture(pause_text, 500.0f, 500.0f, LIGHTGRAY);
+            DrawText("JOGO PAUSADO", 100, 150, 100, DARKBROWN);
+            DrawText("Aperte ENTER ou Q Para Sair", 100, 300, 50, DARKBROWN);
+            break;
         }
 
         EndDrawing();

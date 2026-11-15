@@ -14,24 +14,24 @@
 
 void update_player(PlayerSettings *player, GameSettings settings, Sound som,  float time){
     if (player->alive)
-            {
-                player->velocity.x = 0.0f;
+    {
+        player->velocity.x = 0.0f;
 
-                if (!player->is_grounded)
-                {
-                    player->velocity.y += settings.gravity * time;
-                }
+        if (!player->is_grounded)
+        {
+            player->velocity.y += settings.gravity * time;
+        }
 
                 if (IsKeyPressed(KEY_J))
                 {
                     player->estado_player = ATTACKING;
                 }
 
-                if (player->position.x < 0)
-                    player->position.x = 0;
+        if (player->position.x < 0)
+            player->position.x = 0;
 
-                if (player->position.x > (COLUNAS * TAM_TILE - RENDER_SIZE))
-                    player->position.x = (COLUNAS * TAM_TILE - RENDER_SIZE);
+        if (player->position.x > (COLUNAS * TAM_TILE - RENDER_SIZE))
+            player->position.x = (COLUNAS * TAM_TILE - RENDER_SIZE);
 
                 if (IsKeyDown(KEY_SPACE) && player->is_grounded)
                 {
@@ -77,9 +77,8 @@ void update_player(PlayerSettings *player, GameSettings settings, Sound som,  fl
                     player->alive = true;
             }
 
-            player->position.x += player->velocity.x * time;
-            player->position.y += player->velocity.y * time;
-
+    player->position.x += player->velocity.x * time;
+    player->position.y += player->velocity.y * time;
 }
 
 void update_inimigo(Enemy *inimigo, GameSettings settings, float time, char mapa[LINHAS][COLUNAS]){
@@ -87,14 +86,13 @@ void update_inimigo(Enemy *inimigo, GameSettings settings, float time, char mapa
             {
                 inimigo->velocity.x = inimigo->speed * inimigo->direcao;
 
-                if (!inimigo->is_grounded)
-                {
-                    inimigo->velocity.y += settings.gravity * time;
-                }
+        if (!inimigo->is_grounded)
+        {
+            inimigo->velocity.y += settings.gravity * time;
+        }
 
-                inimigo->position.x += inimigo->velocity.x * time;
-                inimigo->position.y += inimigo->velocity.y * time;
-
+        inimigo->position.x += inimigo->velocity.x * time;
+        inimigo->position.y += inimigo->velocity.y * time;
 
                 if (inimigo->position.x <= 0 || inimigo->position.x >= (COLUNAS * TAM_TILE - RENDER_SIZE))
                 {
@@ -149,16 +147,17 @@ void update_inimigo(Enemy *inimigo, GameSettings settings, float time, char mapa
             }
 }
 
-void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru){
+void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru)
+{
 
     Vector2 origem = {0.0f, 0.0f};
     float rotacao = 0.0f;
 
     for (int i = 0; i < LINHAS; i++)
-            {
-                for (int j = 0; j < COLUNAS; j++)
-                {
-                    Rectangle posicao_telha = {j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
+    {
+        for (int j = 0; j < COLUNAS; j++)
+        {
+            Rectangle posicao_telha = {j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
 
                     if (mapa[i][j] == 'Z')
                     { // DESENHA CHAO
