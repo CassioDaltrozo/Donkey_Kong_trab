@@ -2,19 +2,41 @@
 #define CONFIGURACOES_H
 
 #include "raylib.h"
+#include "animations.h"
 
 #define LINHAS 30
 #define COLUNAS 30
 #define MAX_BANANAS 5
 
-// Tamanho visual e de colisão no ecrã (igual ao bloquinho (tile) do mapa: 32x32)
 #define TAM_TILE 32.0f
 #define RENDER_SIZE 32.0f
 
 #define MAX_INIM 10
 
-// BASE DE DADOS DE CONFIGURACOES DO JOGO, DO JOGADOR, DO INIMIGO, E DAS ANIMAÇOES
+#define FRAME_WIDTH 256.0f
+#define FRAME_HEIGHT 256.0f
 
+// Hitbox da banana
+#define BANANA_LARGURA 10.0f
+#define BANANA_ALTURA 6.0f
+
+#define MAX_FASES 3
+
+#define RENDER_SIZE 32.0f
+#define TAM_TILE 32.0f
+#define COLUNAS 30
+
+// subida na escada
+#define SUBIR_ESCADA -450.0f
+
+#define DESCER_ESCADA (2 * RENDER_SIZE)
+
+// Chance de 0 a 100 do inimigo usar a escada
+#define CHANCE_ESCADA 70
+// Tempo antes do inimigo usar outra escada
+#define COOLDOWN_ESCADA 1.5f
+
+// BASE DE DADOS DE CONFIGURACOES DO JOGO, DO JOGADOR, DO INIMIGO, E DAS ANIMAÇOES
 typedef struct GameSettings
 {
     int screen_width;
@@ -30,19 +52,6 @@ typedef enum GameState
     PAUSE,
 } GameState;
 
-typedef enum Direction
-{
-    LEFT = -1,
-    RIGHT = 1,
-} Direction;
-
-typedef enum PlayerState
-{
-    IDLE,
-    RUNNING,
-    JUMPING,
-    ATTACKING
-} PlayerState;
 typedef struct PlayerSettings
 {
     float speed;
@@ -52,6 +61,7 @@ typedef struct PlayerSettings
     Rectangle hitbox;
     bool is_grounded;
     bool alive;
+    bool power_up;
     Direction direcao;
     PlayerState estado_player;
 
@@ -93,33 +103,11 @@ typedef struct Ru
     int linha_ru;
 } Ru;
 
-typedef enum AnimationType
-{
-    REPEATING = 1,
-    ONESHOT = 2,
-} AnimationType;
-
-typedef struct Animation
-{
-    int first_frame;
-    int last_frame;
-    int current_frame;
-    int step;
-    float speed;
-    float duration_left;
-    AnimationType type;
-} Animation;
-
-// ASSINA FUNCOES DE ANIMACAO DE SPRITE
-void animation_update(Animation *self);
-void reset_animation(Animation *self);
-Rectangle animation_frame(Animation *self, int num_frames_per_row);
 
 // ASSINA FUNCAO QUE CARREGA O MAPA
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
 void posicoes_mapa(PlayerSettings *player, Enemy exams[], int *inim_qntd, char mapa[LINHAS][COLUNAS], Monkey *monkey, Ru *ru);
+void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru);
 
-// ASSINA FUNCAO QUE PROCURA O CHAO EM UMA COLUNA DO MAPA
-int achaChao(char mapa[LINHAS][COLUNAS], int col, int linha_inicial, int max_descida);
 
 #endif

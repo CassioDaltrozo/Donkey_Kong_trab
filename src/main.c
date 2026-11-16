@@ -2,17 +2,7 @@
 #include "settings.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include "raymath.h"
-#include <math.h>
 #include "mecanicas.h"
-
-// Tamanho de cada frame dentro do ficheiro da imagem original (ex: 256x256 por frame)
-#define FRAME_WIDTH 256.0f
-#define FRAME_HEIGHT 256.0f
-
-// Hitbox da banana
-#define BANANA_LARGURA 10.0f
-#define BANANA_ALTURA 6.0f
 
 int main(){
     // RENDERIZAÇÃO BÁSICA DO MAPA
@@ -132,109 +122,9 @@ int main(){
             // Macaco e bananas
             if (player.alive)
             {
-                // Só conta o tempo com o jogador vivo
-                monkey.throw_cooldown -= delta_time;
-
-                if (monkey.throw_cooldown <= 0.0f)
-                {
-                    monkey.throw_cooldown = monkey.throw_interval;
-
-                    // Preve onde o jogador vai estar
-                    // Andando: velocidade x tempo = distância que ele percorre em 1,2 s
-                    // Parado: o macaco aposta que ele vai andar para o lado que olha
-                    float frente;
-                    if (player.velocity.x != 0.0f)
-                    {
-                        frente = player.velocity.x * 1.2f;
-                    }
-                    else
-                    {
-                        frente = player.direcao * 3.0f * TAM_TILE;
-                    }
-                    float alvo_x = player.position.x + frente;
-
-                    // Não deixa o alvo sair da tela.
-                    if (alvo_x < 0.0f)
-                        alvo_x = 0.0f;
-                    if (alvo_x > COLUNAS * TAM_TILE - RENDER_SIZE)
-                        alvo_x = COLUNAS * TAM_TILE - RENDER_SIZE;
-
-                    // Converter posição em coluna e linha do mapa
-                    // Dividir por TAM_TILE diz em qual bloquinho estamos
-                    // Usamos o centro do jogador (+ RENDER_SIZE / 2) para evitar erro de borda
-                    int coluna = (int)((alvo_x + RENDER_SIZE / 2.0f) / TAM_TILE);
-                    int linha_jogador = (int)((player.position.y + RENDER_SIZE / 2.0f) / TAM_TILE);
-
-                    // PASSO 3: achar o chão nessa coluna, descendo no máximo 2 linhas.
-                    int linha_chao = achaChao(mapa, coluna, linha_jogador, 2);
-
-                    // Posição X da banana: centralizada dentro do bloquinho
-                    float banana_x = coluna * TAM_TILE + (TAM_TILE - BANANA_LARGURA) / 2.0f;
-
-                    // Regras que impedem o arremesso
-                    bool pode_jogar = true;
-
-                    // 1. não achou chão
-                    if (linha_chao == -1)
-                        pode_jogar = false;
-
-                    // 2. o chão achado é o da plataforma do RU
-                    if (pode_jogar && linha_chao <= ru.linha_ru + 1)
-                        pode_jogar = false;
-
-                    // 3. a banana cairia em cima do jogador
-                    if (pode_jogar && fabsf(banana_x - player.position.x) < TAM_TILE)
-                        pode_jogar = false;
-
-                    // Se tudo certo, usa uma banana livre do estoque
-                    if (pode_jogar)
-                    {
-                        for (int i = 0; i < MAX_BANANAS; i++)
-                        {
-                            if (!bananas[i].active)
-                            {
-                                bananas[i].active = true;
-                                bananas[i].lifetime = 8.0f;
-                                // O Y é o topo do chão menos a altura da banana, para ela
-                                // ficar "sentada" em cima da plataforma.
-                                bananas[i].position = (Vector2){banana_x, linha_chao * TAM_TILE - BANANA_ALTURA};
-                                break;
-                            }
-                        }
-                    }
-                }
+                macaco(&monkey, &player, bananas, mapa, delta_time, somMorte);
             }
-
-            // Atualiza cada banana do estoque
-            // continue pula para a próxima banana sem executar o resto do corpo
-            for (int i = 0; i < MAX_BANANAS; i++)
-            {
-                if (!bananas[i].active)
-                    continue;
-
-                // Diminui o tempo de vida da banana
-                bananas[i].lifetime -= delta_time;
-                if (bananas[i].lifetime <= 0.0f)
-                {
-                    bananas[i].active = false;
-                    continue;
-                }
-
-                // A banana está parada, então só precisa checar a colisão com o jogador
-                bananas[i].hitbox = (Rectangle){bananas[i].position.x, bananas[i].position.y, BANANA_LARGURA, BANANA_ALTURA};
-
-                // Ao tocar no jogador a banana some. Se ele estiver atacando (J), ele
-                // destrói a banana e sobrevive; se não, ele morre.
-                if (player.alive && CheckCollisionRecs(player.hitbox, bananas[i].hitbox))
-                {
-                    bananas[i].active = false;
-                    if (player.estado_player != ATTACKING)
-                    {
-                        player.alive = false;
-                        PlaySound(somMorte);
-                    }
-                }
-            }
+                
 
             checa_colisoes(mapa, &player, exams, inim_qntd);
 
@@ -264,6 +154,12 @@ int main(){
 
             if (player.alive && CheckCollisionRecs(player.hitbox, ru.hitbox)){
                 fase++;
+
+                if(fase == MAX_FASES){
+                    fase = 1;
+                    estado_jogo = MENU;
+                }
+
                 sprintf(caminho, "maps/mapa%d.txt", fase);
                 carregaMapa(caminho, mapa);
                 inim_qntd = 0;
