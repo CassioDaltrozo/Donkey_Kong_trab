@@ -7,6 +7,12 @@
 #define COLUNAS 30
 #define MAX_BANANAS 5
 
+// Tamanho visual e de colisão no ecrã (igual ao bloquinho (tile) do mapa: 32x32)
+#define TAM_TILE 32.0f
+#define RENDER_SIZE 32.0f
+
+#define MAX_INIM 10
+
 // BASE DE DADOS DE CONFIGURACOES DO JOGO, DO JOGADOR, DO INIMIGO, E DAS ANIMAÇOES
 
 typedef struct GameSettings
@@ -24,39 +30,6 @@ typedef enum GameState
     PAUSE,
 } GameState;
 
-typedef struct PlayerSettings
-{
-    float speed;
-    float jump_force;
-    Vector2 velocity;
-    Vector2 position;
-    bool is_grounded;
-    bool alive;
-} PlayerSettings;
-
-typedef struct Enemy
-{
-    Vector2 position;
-    Vector2 velocity;
-    float speed;
-    bool is_grounded;
-    bool alive;
-} Enemy;
-
-typedef struct Banana
-{
-    Vector2 position;
-    float lifetime;
-    bool active;
-} Banana;
-
-typedef struct Monkey
-{
-    Vector2 position;
-    float throw_cooldown;
-    float throw_interval;
-} Monkey;
-
 typedef enum Direction
 {
     LEFT = -1,
@@ -70,6 +43,55 @@ typedef enum PlayerState
     JUMPING,
     ATTACKING
 } PlayerState;
+typedef struct PlayerSettings
+{
+    float speed;
+    float jump_force;
+    Vector2 velocity;
+    Vector2 position;
+    Rectangle hitbox;
+    bool is_grounded;
+    bool alive;
+    Direction direcao;
+    PlayerState estado_player;
+
+} PlayerSettings;
+
+typedef struct Enemy
+{
+    Vector2 position;
+    Vector2 velocity;
+    Rectangle hitbox;
+    float cooldown;
+    float speed;
+    bool is_grounded;
+    bool na_escada;
+    bool alive;
+    Direction direcao;
+
+} Enemy;
+
+typedef struct Banana
+{
+    Vector2 position;
+    Rectangle hitbox;
+    float lifetime;
+    bool active;
+} Banana;
+
+typedef struct Monkey
+{
+    Vector2 position;
+    Rectangle hitbox;
+    float throw_cooldown;
+    float throw_interval;
+} Monkey;
+
+typedef struct Ru
+{
+    Rectangle hitbox;
+    int linha_ru;
+} Ru;
 
 typedef enum AnimationType
 {
@@ -95,6 +117,7 @@ Rectangle animation_frame(Animation *self, int num_frames_per_row);
 
 // ASSINA FUNCAO QUE CARREGA O MAPA
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS]);
+void posicoes_mapa(PlayerSettings *player, Enemy exams[], int *inim_qntd, char mapa[LINHAS][COLUNAS], Monkey *monkey, Ru *ru);
 
 // ASSINA FUNCAO QUE PROCURA O CHAO EM UMA COLUNA DO MAPA
 int achaChao(char mapa[LINHAS][COLUNAS], int col, int linha_inicial, int max_descida);
