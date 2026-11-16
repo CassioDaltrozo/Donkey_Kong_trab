@@ -5,6 +5,7 @@
 #include "raymath.h"
 #include <math.h>
 #include "mecanicas.h"
+#include "placar.h"
 
 // Tamanho de cada frame dentro do ficheiro da imagem original (ex: 256x256 por frame)
 #define FRAME_WIDTH 256.0f
@@ -17,11 +18,10 @@
 int main()
 {
     // RENDERIZAÇÃO BÁSICA DO MAPA
-    char mapa[LINHAS][COLUNAS];
-    int inim_qntd = 0;
-    float pontuacao = 5000.0f, tempo_fase = 0.0f;
-    int fase = 1;
-    char caminho[50];
+    char mapa[LINHAS][COLUNAS], caminho[50];
+    int inim_qntd = 0, fase = 1;
+    float pontuacao = PONTUACAO_INICIAL, tempo_fase = 0.0f;
+    double tempo_total;
 
     sprintf(caminho, "maps/mapa%d.txt", fase);
 
@@ -110,8 +110,23 @@ int main()
             if (IsKeyPressed(KEY_ENTER))
             {
                 estado_jogo = GAME;
-                pontuacao = 5000.0f;
+                pontuacao = PONTUACAO_INICIAL;
                 tempo_fase = 0.0f;
+                tempo_total = 0.0;
+                inim_qntd = 0;
+                player.alive = true;
+                player.velocity = (Vector2){0.0f, 0.0f};
+                fase = 1;
+
+                for (int i = 0; i < MAX_BANANAS; i++)
+                {
+                    bananas[i].active = false;
+                }
+                carregaMapa(caminho, mapa);
+
+                posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
+
+                sprintf(caminho, "maps/mapa%d.txt", fase);
             }
             break;
         case GAME:
@@ -127,6 +142,7 @@ int main()
             if (player.alive)
             {
                 tempo_fase += delta_time;
+                tempo_total += delta_time;
                 pontuacao -= (delta_time * 50.0f);
             }
 
@@ -279,11 +295,29 @@ int main()
 
             if (player.alive && CheckCollisionRecs(player.hitbox, ru.hitbox))
             {
+                pontuacao += (float)bonus_tempo(tempo_fase);
+                tempo_fase = 0.0f;
+                player.velocity = (Vector2){0.0f, 0.0f};
+
+                for (int i = 0; i < MAX_BANANAS; i++)
+                {
+                    bananas[i].active = false;
+                }
+
                 fase++;
                 sprintf(caminho, "maps/mapa%d.txt", fase);
-                carregaMapa(caminho, mapa);
-                inim_qntd = 0;
-                posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
+
+                if (carregaMapa(caminho, mapa) == 0)
+                {
+                    // PROVISORIO! MUDAR DPS
+                    printf("VENCEU! Pontos: %.0f | Tempo total: %.1fs\n", pontuacao, tempo_total);
+                    estado_jogo = MENU;
+                }
+                else
+                {
+                    inim_qntd = 0;
+                    posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
+                }
             }
 
             // TROCA ESTADO DE ANIMAÇÃO DO JOGADOR
@@ -401,8 +435,9 @@ int main()
                 }
             }
 
-            DrawText(TextFormat("PONTOS: %d", (int)pontuacao), 20, 10, 24, BLACK);
-            DrawText(TextFormat("TEMPO: %.1fs", tempo_fase), 20, 40, 24, BLACK);
+            DrawText(TextFormat("FASE: %d", fase), 20, 70, 24, BLACK);
+            DrawText(TextFormat("PONTOS: %d", (int)pontuacao), 20, 10, 20, BLACK);
+            DrawText(TextFormat("TEMPO: %.1fs", tempo_fase), 20, 40, 20, BLACK);
 
             break;
 
