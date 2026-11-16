@@ -99,7 +99,11 @@ int main(){
         case MENU:
             UpdateMusicStream(musiquinhaMenu);
             if (IsKeyPressed(KEY_ENTER))
+            {
                 estado_jogo = GAME;
+                pontuacao = 5000.0f;
+                tempo_fase = 0.0f;
+            }
             break;
         case GAME:
             if (IsKeyPressed(KEY_TAB))
