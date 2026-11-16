@@ -30,9 +30,11 @@
 
 int main()
 {
-    // RENDERIZAÇÃO BÁSICA DO MAPA
     char mapa[LINHAS][COLUNAS];
+    int linha_ru = -1;
+    float pontuacao = 5000.0f, tempo_fase = 0.0f;
 
+    // RENDERIZAÇÃO BÁSICA DO MAPA
     if (carregaMapa("maps/mapa1.txt", mapa) == 0)
     {
         printf("Erro ao carregar o mapa!\n");
@@ -68,8 +70,6 @@ int main()
         .throw_cooldown = 3.0f};
 
     Banana bananas[MAX_BANANAS] = {0};
-
-    int linha_ru = -1;
 
     // Posicionamento inicial do player e do inimigo com base na matriz do mapa
     for (int i = 0; i < LINHAS; i++)
@@ -148,7 +148,11 @@ int main()
         case MENU:
             UpdateMusicStream(musiquinhaMenu);
             if (IsKeyPressed(KEY_ENTER))
+            {
                 estado_jogo = GAME;
+                pontuacao = 5000.0f;
+                tempo_fase = 0.0f;
+            }
             break;
         case GAME:
             if (IsKeyPressed(KEY_TAB))
@@ -158,6 +162,16 @@ int main()
 
             float delta_time = GetFrameTime();
             previous_state = current_state;
+
+            // Logica da pontuacao
+            if (player.alive)
+            {
+                tempo_fase += delta_time;
+                pontuacao -= (delta_time * 50.0f);
+            }
+
+            if (pontuacao < 0.0f)
+                pontuacao = 0.0f;
 
             // 1. Lógica, Controles e posição do Jogador
             update_player(&player, &current_state, settings, &player_direction, jumpSound, delta_time);
@@ -520,6 +534,9 @@ int main()
                     DrawRectangleLines((int)bananas[i].position.x, (int)bananas[i].position.y, (int)BANANA_LARGURA, (int)BANANA_ALTURA, RED);
                 }
             }
+
+            DrawText(TextFormat("PONTOS: %d", (int)pontuacao), 20, 10, 24, BLACK);
+            DrawText(TextFormat("TEMPO: %.1fs", tempo_fase), 20, 40, 24, BLACK);
 
             break;
 
