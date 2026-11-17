@@ -5,7 +5,7 @@ void inicializa_placar(TIPO_PLACAR tipo_placar[], int *qtd)
 {
     *qtd = 0;
 
-    for (int i = 0; i < MAX_RANKING; i++)
+    for (int i = 0; i < MAX_PLACAR; i++)
     {
         strcpy(tipo_placar[i].nome, "---");
         tipo_placar[i].time = 0;
