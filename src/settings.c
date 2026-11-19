@@ -2,68 +2,6 @@
 #include "raylib.h"
 #include <stdio.h>
 
-// UPTADE DE ANIMAÇAO, USANDO PONTEIROS
-void animation_update(Animation *self)
-{
-    float delta_time = GetFrameTime();
-    self->duration_left -= delta_time;
-
-    if (self->duration_left <= 0.0)
-    {
-        self->duration_left = self->speed;
-
-        if (self->current_frame == self->last_frame && self->type == ONESHOT)
-        {
-            return;
-        }
-
-        self->current_frame += self->step;
-
-        if (self->current_frame > self->last_frame)
-        {
-            switch (self->type)
-            {
-            case REPEATING:
-                self->current_frame = self->first_frame;
-                break;
-
-            case ONESHOT:
-                self->current_frame = self->last_frame;
-                break;
-            }
-        }
-        else if (self->current_frame < self->first_frame)
-        {
-            switch (self->type)
-            {
-            case REPEATING:
-                self->current_frame = self->last_frame;
-                break;
-
-            case ONESHOT:
-                self->current_frame = self->first_frame;
-                break;
-            }
-        }
-    }
-}
-
-// RETORNO DO FRAME DA PNG PARA DESENHO
-Rectangle animation_frame(Animation *self, int num_frames_per_row)
-{
-    float x = (float)(self->current_frame % num_frames_per_row) * 256.0f;
-    float y = (float)(self->current_frame / num_frames_per_row) * 256.0f;
-
-    return (Rectangle){.x = x, .y = y, .width = 256.0f, .height = 256.0f};
-}
-
-// RESET PARA PERMANENCIA
-void reset_animation(Animation *self)
-{
-    self->current_frame = self->first_frame;
-    self->duration_left = self->speed;
-}
-
 // FUNCAO CARREGA MAPA DEFINIDA
 int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
 {
@@ -106,23 +44,6 @@ int carregaMapa(char nomeArquivo[], char mapa[LINHAS][COLUNAS])
     return 1;
 }
 
-int achaChao(char mapa[LINHAS][COLUNAS], int col, int linha_inicial, int max_descida)
-{
-    if (col < 0 || col >= COLUNAS)
-    {
-        return -1;
-    }
-
-    for (int i = linha_inicial; i <= linha_inicial + max_descida && i < LINHAS; i++)
-    {
-        if (i >= 0 && mapa[i][col] == 'Z')
-        {
-            return i;
-        }
-    }
-
-    return -1;
-}
 
 void posicoes_mapa(PlayerSettings *player, Enemy exams[], int *inim_qntd, char mapa[LINHAS][COLUNAS], Monkey *monkey, Ru *ru){
     // Posicionamento inicial do player e do inimigo com base na matriz do mapa
@@ -166,4 +87,35 @@ void posicoes_mapa(PlayerSettings *player, Enemy exams[], int *inim_qntd, char m
             }
         }
     }
+}
+
+void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru)
+{
+
+    Vector2 origem = {0.0f, 0.0f};
+    float rotacao = 0.0f;
+
+    for (int i = 0; i < LINHAS; i++)
+    {
+        for (int j = 0; j < COLUNAS; j++)
+        {
+            Rectangle posicao_telha = {j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
+
+                    if (mapa[i][j] == 'Z')
+                    { // DESENHA CHAO
+                        Rectangle grama_frame = {0.0f, 0.0f, chao.width, chao.height};
+                        DrawTexturePro(chao, grama_frame, posicao_telha, origem, rotacao, WHITE);
+                    }
+                    else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D')
+                    { // DESENHA ESCADA
+                        Rectangle ladder_frame = {0.0f, 0.0f, escada.width, escada.height};
+                        DrawTexturePro(escada, ladder_frame, posicao_telha, origem, rotacao, WHITE);
+                    }
+                    else if (mapa[i][j] == 'F')
+                    { // DESENHA O RU
+                        Rectangle ru_frame = {0.0f, 0.0f, ru.width, ru.height};
+                        DrawTexturePro(ru, ru_frame, posicao_telha, origem, rotacao, YELLOW);
+                    }
+                }
+            }
 }

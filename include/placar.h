@@ -1,7 +1,7 @@
 #ifndef PLACAR_H
 #define PLACAR_H
 
-#define MAX_PLACAR 10
+#define MAX_RANKING 10
 // Ate 15 caracteres + 1 para o '\0' (fim da string)
 #define MAX_NOME 20
 #define ARQUIVO_PLACAR "placar.bin"

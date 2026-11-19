@@ -11,7 +11,9 @@
 
 void update_player(PlayerSettings *player, GameSettings settings, Sound som,  float time);
 void update_inimigo(Enemy *inimigo, GameSettings settings, float time, char mapa[LINHAS][COLUNAS]);
-void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru);
 void checa_colisoes(char mapa[LINHAS][COLUNAS], PlayerSettings *player, Enemy inimigos[], int qnt_inim);
+void banana_macaco(Monkey *monkey, float time, PlayerSettings *player, Banana bananas[], char mapa[LINHAS][COLUNAS], Sound somMorte);
+int achaChao(char mapa[LINHAS][COLUNAS], int col, int linha_inicial, int max_descida);
+
 
 #endif
