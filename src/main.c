@@ -39,7 +39,9 @@ int main()
         .jump_force = -380.0f,
         .direcao = RIGHT,
         .hitbox = {0.0f},
-        .estado_player = IDLE};
+        .estado_player = IDLE,
+        .vidas = MAX_VIDAS
+    };
 
     Enemy exams[MAX_INIM];
 
@@ -105,6 +107,7 @@ int main()
                 tempo_total = 0.0;
                 inim_qntd = 0;
                 player.alive = true;
+                player.vidas = MAX_VIDAS;
                 player.velocity = (Vector2){0.0f, 0.0f};
                 fase = 1;
 
@@ -124,6 +127,9 @@ int main()
             if (IsKeyPressed(KEY_TAB))
                 estado_jogo = PAUSE;
 
+            if(!IsMusicStreamPlaying(musiquinhaTeste))
+                PlayMusicStream(musiquinhaTeste);
+
             UpdateMusicStream(musiquinhaTeste);
 
             float delta_time = GetFrameTime();
@@ -135,33 +141,13 @@ int main()
                 tempo_fase += delta_time;
                 tempo_total += delta_time;
                 pontuacao -= (delta_time * 50.0f);
-            }
 
-            if (pontuacao < 0.0f)
-                pontuacao = 0.0f;
-
-            // 1. Lógica, Controles e posição do Jogador
-            update_player(&player, settings, jumpSound, delta_time);
-
-            // 2. Lógica e Colisão do Inimigo com o mapa
-            for (int i = 0; i < inim_qntd; i++)
-            {
-                update_inimigo(&exams[i], settings, delta_time, mapa);
-                exams[i].hitbox = (Rectangle){exams[i].position.x, exams[i].position.y, RENDER_SIZE, RENDER_SIZE};
-            }
-
-            // Macaco e bananas
-            if (player.alive)
-            {
                 banana_macaco(&monkey, delta_time, &player, bananas, mapa, somMorte);
-            }
 
-            checa_colisoes(mapa, &player, exams, inim_qntd);
-
-            // TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
-            for (int i = 0; i < inim_qntd; i++)
-            {
-                if (player.alive && CheckCollisionRecs(player.hitbox, exams[i].hitbox))
+                // TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
+                for (int i = 0; i < inim_qntd; i++)
+                {
+                if (CheckCollisionRecs(player.hitbox, exams[i].hitbox))
                 {
                     if (player.estado_player == ATTACKING)
                     {
@@ -171,19 +157,21 @@ int main()
                     }
                     else
                     {
-                        player.alive = false;
+                        player.vidas--;
+                        player.position.x = 0;
                         PlaySound(somMorte);
                     }
                 }
-            }
+                }
 
-            if (player.alive && CheckCollisionRecs(player.hitbox, monkey.hitbox))
-            {
-                player.alive = false;
+                if (CheckCollisionRecs(player.hitbox, monkey.hitbox))
+                {
+                player.vidas--;
+                player.position.x = 0;
                 PlaySound(somMorte);
-            }
+                }
 
-            if (player.alive && CheckCollisionRecs(player.hitbox, ru.hitbox))
+                if (CheckCollisionRecs(player.hitbox, ru.hitbox))
             {
                 pontuacao += (float)bonus_tempo(tempo_fase);
                 tempo_fase = 0.0f;
@@ -208,6 +196,29 @@ int main()
                     inim_qntd = 0;
                     posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
                 }
+            }
+
+            }
+
+            if (pontuacao < 0.0f)
+                pontuacao = 0.0f;
+
+            // 1. Lógica, Controles e posição do Jogador
+            update_player(&player, settings, jumpSound, delta_time);
+
+            // 2. Lógica e Colisão do Inimigo com o mapa
+            for (int i = 0; i < inim_qntd; i++)
+            {
+                update_inimigo(&exams[i], settings, delta_time, mapa);
+                exams[i].hitbox = (Rectangle){exams[i].position.x, exams[i].position.y, RENDER_SIZE, RENDER_SIZE};
+            }
+
+            checa_colisoes(mapa, &player, exams, inim_qntd);
+
+            if (player.vidas == 0){
+                player.alive = false;
+                if(IsKeyPressed(KEY_Q))
+                    estado_jogo = MENU;
             }
 
             // TROCA ESTADO DE ANIMAÇÃO DO JOGADOR
@@ -293,8 +304,12 @@ int main()
             }
             else
             {
-                DrawText("VOCE MORREU! Pressione R para reiniciar", 150, 450, 20, RED);
+                ClearBackground(GRAY);
+                StopMusicStream(musiquinhaTeste);
+                DrawText("GAME OVER! Pressione Q para sair", 300, 450, 20, RED);
             }
+
+            DrawText(TextFormat("VIDAS RESTANTES: %d", player.vidas), 700, 10, 20, RED);
 
             // Desenha o Inimigo
             for (int i = 0; i < inim_qntd; i++)

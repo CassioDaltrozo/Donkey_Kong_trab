@@ -32,6 +32,8 @@
 #define BANANA_LARGURA 10.0f
 #define BANANA_ALTURA 6.0f
 
+#define MAX_VIDAS 3
+
 // BASE DE DADOS DE CONFIGURACOES DO JOGO, DO JOGADOR, DO INIMIGO, E DAS ANIMAÇOES
 
 typedef struct GameSettings
@@ -68,6 +70,7 @@ typedef struct PlayerSettings
     bool alive;
     Direction direcao;
     PlayerState estado_player;
+    int vidas;
 
 } PlayerSettings;
 

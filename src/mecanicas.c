@@ -63,11 +63,6 @@ void update_player(PlayerSettings *player, GameSettings settings, Sound som,  fl
                     player->estado_player = IDLE;
                 }
             }
-            else
-            {
-                if (IsKeyPressed(KEY_R))
-                    player->alive = true;
-            }
 
     player->position.x += player->velocity.x * time;
     player->position.y += player->velocity.y * time;
@@ -308,7 +303,8 @@ void banana_macaco(Monkey *monkey, float time, PlayerSettings *player, Banana ba
                     bananas[i].active = false;
                     if (player->estado_player != ATTACKING)
                     {
-                        player->alive = false;
+                        player->vidas--;
+                        player->position.x = 0;
                         PlaySound(somMorte);
                     }
                 }
