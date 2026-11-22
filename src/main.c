@@ -118,6 +118,7 @@ int main()
 
                 sprintf(caminho, "maps/mapa%d.txt", fase);
             }
+
             break;
         case GAME:
             if (IsKeyPressed(KEY_TAB))
@@ -288,7 +289,7 @@ int main()
 
                 // DESENHA O PLAYER E HITBOX PARA TESTES
                 DrawTexturePro(player_text, player_frame, desenho_player, origem, rotacao, WHITE);
-                DrawRectangleLines((int)player.hitbox.x, (int)player.hitbox.y, (int)player.hitbox.width, (int)player.hitbox.height, GREEN);
+                //DrawRectangleLines((int)player.hitbox.x, (int)player.hitbox.y, (int)player.hitbox.width, (int)player.hitbox.height, GREEN);
             }
             else
             {
@@ -311,7 +312,7 @@ int main()
 
                     // DESENHA O INIMIGO E HITBOX PARA TESTES
                     DrawTexturePro(exam_text, exam_frame, desenho_exam, origem, rotacao, WHITE);
-                    DrawRectangleLines((int)exams[i].hitbox.x, (int)exams[i].hitbox.y, (int)exams[i].hitbox.width, (int)exams[i].hitbox.height, RED);
+                    //DrawRectangleLines((int)exams[i].hitbox.x, (int)exams[i].hitbox.y, (int)exams[i].hitbox.width, (int)exams[i].hitbox.height, RED);
                 }
             }
 
@@ -325,7 +326,7 @@ int main()
                 if (bananas[i].active)
                 {
                     DrawEllipse((int)(bananas[i].position.x + BANANA_LARGURA / 2.0f), (int)(bananas[i].position.y + BANANA_ALTURA / 2.0f), 8, 4, YELLOW);
-                    DrawRectangleLines((int)bananas[i].position.x, (int)bananas[i].position.y, (int)BANANA_LARGURA, (int)BANANA_ALTURA, RED);
+                    //DrawRectangleLines((int)bananas[i].position.x, (int)bananas[i].position.y, (int)BANANA_LARGURA, (int)BANANA_ALTURA, RED);
                 }
             }
 
@@ -340,6 +341,12 @@ int main()
             DrawTexture(pause_text, 500.0f, 500.0f, LIGHTGRAY);
             DrawText("JOGO PAUSADO", 100, 150, 100, DARKBROWN);
             DrawText("Aperte ENTER ou Q Para Sair", 100, 300, 50, DARKBROWN);
+            break;
+        case WIN:
+            DrawText("VOCE VENCEU!!", 100, 150, 100, BLACK);
+            DrawText("PONTUACÃO: ", 200, 350, 50, BLACK); DrawText(TextFormat("%d", (int)pontuacao), 550, 350, 50, GREEN);
+            DrawText("TEMPO: ", 200, 450, 50, BLACK); DrawText(TextFormat("%.1fs", tempo_total), 430, 450, 50, GREEN);
+            DrawText("Aperte ENTER para Sair", 20, settings.screen_height - 40, 20, RED);
             break;
         }
 
