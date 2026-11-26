@@ -21,7 +21,7 @@ int main()
     char mapa[LINHAS][COLUNAS], caminho[50];
     int inim_qntd = 0, fase = 1;
     float pontuacao = PONTUACAO_INICIAL, tempo_fase = 0.0f;
-    double tempo_total;
+    double tempo_total = 0.0;
 
     sprintf(caminho, "maps/mapa%d.txt", fase);
 
@@ -116,17 +116,19 @@ int main()
                 inim_qntd = 0;
                 player.alive = true;
                 player.velocity = (Vector2){0.0f, 0.0f};
+                player.estado_player = IDLE;
+                player.is_grounded = true;
                 fase = 1;
 
                 for (int i = 0; i < MAX_BANANAS; i++)
                 {
                     bananas[i].active = false;
                 }
+                sprintf(caminho, "maps/mapa%d.txt", fase);
+
                 carregaMapa(caminho, mapa);
 
                 posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
-
-                sprintf(caminho, "maps/mapa%d.txt", fase);
             }
             break;
         case GAME:
@@ -298,6 +300,8 @@ int main()
                 pontuacao += (float)bonus_tempo(tempo_fase);
                 tempo_fase = 0.0f;
                 player.velocity = (Vector2){0.0f, 0.0f};
+                player.estado_player = IDLE;
+                player.is_grounded = true;
 
                 for (int i = 0; i < MAX_BANANAS; i++)
                 {
