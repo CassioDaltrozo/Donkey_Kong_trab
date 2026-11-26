@@ -19,9 +19,13 @@ int main()
 {
     // RENDERIZAÇÃO BÁSICA DO MAPA
     char mapa[LINHAS][COLUNAS], caminho[50];
-    int inim_qntd = 0, fase = 1;
+    int inim_qntd = 0, fase = 1, qtd_placar = 0;
     float pontuacao = PONTUACAO_INICIAL, tempo_fase = 0.0f;
     double tempo_total = 0.0;
+
+    // inicializacao do placar
+    TIPO_PLACAR placar[MAX_PLACAR];
+    carrega_placar(placar, &qtd_placar);
 
     sprintf(caminho, "maps/mapa%d.txt", fase);
 
@@ -129,6 +133,10 @@ int main()
                 carregaMapa(caminho, mapa);
 
                 posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
+            }
+            else if (IsKeyPressed(KEY_R))
+            {
+                estado_jogo = PLACAR;
             }
             break;
         case GAME:
@@ -362,6 +370,15 @@ int main()
                 estado_jogo = MENU;
 
             break;
+
+        case PLACAR:
+            UpdateMusicStream(musiquinhaMenu);
+
+            if (IsKeyPressed(KEY_BACKSPACE))
+            {
+                estado_jogo = MENU;
+            }
+            break;
         }
 
         BeginDrawing();
@@ -450,6 +467,21 @@ int main()
             DrawTexture(pause_text, 500.0f, 500.0f, LIGHTGRAY);
             DrawText("JOGO PAUSADO", 100, 150, 100, DARKBROWN);
             DrawText("Aperte ENTER ou Q Para Sair", 100, 300, 50, DARKBROWN);
+            break;
+
+        case PLACAR:
+            DrawTexture(menu_text, 0.0f, 0.0f, WHITE);
+            DrawRectangle(80, 50, 800, 550, Fade(RAYWHITE, 0.88f));
+            DrawText("TOP 10 PLACAR", 120, 70, 32, BLACK);
+            DrawText("PRESSIONE BACKSPACE PARA VOLTAR", 120, 560, 32, BLACK);
+
+            int i, y;
+
+            for (i = 0; i < MAX_PLACAR; i++)
+            {
+                y = 130 + i * 42;
+                DrawText(TextFormat("%2d. %-15s %6.0f pts  (%.1fs)", i + 1, placar[i].nome, placar[i].pontuacao, placar[i].tempo), 120, y, 24, BLACK);
+            }
             break;
         }
 

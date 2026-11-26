@@ -28,6 +28,7 @@ typedef enum GameState
     MENU,
     GAME,
     PAUSE,
+    PLACAR,
 } GameState;
 
 typedef enum Direction
