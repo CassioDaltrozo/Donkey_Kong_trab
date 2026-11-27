@@ -1,16 +1,8 @@
 #include "mecanicas.h"
 #include "raylib.h"
 #include "settings.h"
-
-// subida na escada
-#define SUBIR_ESCADA -450.0f
-
-#define DESCER_ESCADA (2 * RENDER_SIZE)
-
-// Chance de 0 a 100 do inimigo usar a escada
-#define CHANCE_ESCADA 70
-// Tempo antes do inimigo usar outra escada
-#define COOLDOWN_ESCADA 1.5f
+#include "raymath.h"
+#include <math.h>
 
 void update_player(PlayerSettings *player, GameSettings settings, Sound som,  float time){
     if (player->alive)
@@ -70,11 +62,6 @@ void update_player(PlayerSettings *player, GameSettings settings, Sound som,  fl
                 {
                     player->estado_player = IDLE;
                 }
-            }
-            else
-            {
-                if (IsKeyPressed(KEY_R))
-                    player->alive = true;
             }
 
     player->position.x += player->velocity.x * time;
@@ -144,37 +131,6 @@ void update_inimigo(Enemy *inimigo, GameSettings settings, float time, char mapa
                 }
 
                 inimigo->na_escada = em_escada;
-            }
-}
-
-void desenha_mapa(char mapa[LINHAS][COLUNAS], Texture2D chao, Texture2D escada, Texture2D ru)
-{
-
-    Vector2 origem = {0.0f, 0.0f};
-    float rotacao = 0.0f;
-
-    for (int i = 0; i < LINHAS; i++)
-    {
-        for (int j = 0; j < COLUNAS; j++)
-        {
-            Rectangle posicao_telha = {j * TAM_TILE, i * TAM_TILE, RENDER_SIZE, RENDER_SIZE};
-
-                    if (mapa[i][j] == 'Z')
-                    { // DESENHA CHAO
-                        Rectangle grama_frame = {0.0f, 0.0f, chao.width, chao.height};
-                        DrawTexturePro(chao, grama_frame, posicao_telha, origem, rotacao, WHITE);
-                    }
-                    else if (mapa[i][j] == 'S' || mapa[i][j] == 'H' || mapa[i][j] == 'D')
-                    { // DESENHA ESCADA
-                        Rectangle ladder_frame = {0.0f, 0.0f, escada.width, escada.height};
-                        DrawTexturePro(escada, ladder_frame, posicao_telha, origem, rotacao, WHITE);
-                    }
-                    else if (mapa[i][j] == 'F')
-                    { // DESENHA O RU
-                        Rectangle ru_frame = {0.0f, 0.0f, ru.width, ru.height};
-                        DrawTexturePro(ru, ru_frame, posicao_telha, origem, rotacao, YELLOW);
-                    }
-                }
             }
 }
 
@@ -251,4 +207,124 @@ void checa_colisoes(char mapa[LINHAS][COLUNAS], PlayerSettings *player, Enemy in
                     }
                 }
             }
+}
+
+void banana_macaco(Monkey *monkey, float time, PlayerSettings *player, Banana bananas[], char mapa[LINHAS][COLUNAS], Sound somMorte){
+                // Só conta o tempo com o jogador vivo
+                monkey->throw_cooldown -= time;
+
+                if (monkey->throw_cooldown <= 0.0f)
+                {
+                    monkey->throw_cooldown = monkey->throw_interval;
+
+                    // Preve onde o jogador vai estar
+                    // Andando: velocidade x tempo = distância que ele percorre em 1,2 s
+                    // Parado: o macaco aposta que ele vai andar para o lado que olha
+                    float frente;
+                    if (player->velocity.x != 0.0f)
+                    {
+                        frente = player->velocity.x * 1.2f;
+                    }
+                    else
+                    {
+                        frente = player->direcao * 3.0f * TAM_TILE;
+                    }
+                    float alvo_x = player->position.x + frente;
+
+                    // Não deixa o alvo sair da tela.
+                    if (alvo_x < 0.0f)
+                        alvo_x = 0.0f;
+                    if (alvo_x > COLUNAS * TAM_TILE - RENDER_SIZE)
+                        alvo_x = COLUNAS * TAM_TILE - RENDER_SIZE;
+
+                    // Converter posição em coluna e linha do mapa
+                    // Dividir por TAM_TILE diz em qual bloquinho estamos
+                    // Usamos o centro do jogador (+ RENDER_SIZE / 2) para evitar erro de borda
+                    int coluna = (int)((alvo_x + RENDER_SIZE / 2.0f) / TAM_TILE);
+                    int linha_jogador = (int)((player->position.y + RENDER_SIZE / 2.0f) / TAM_TILE);
+
+                    // PASSO 3: achar o chão nessa coluna, descendo no máximo 2 linhas.
+                    int linha_chao = achaChao(mapa, coluna, linha_jogador, 2);
+
+                    // Posição X da banana: centralizada dentro do bloquinho
+                    float banana_x = coluna * TAM_TILE + (TAM_TILE - BANANA_LARGURA) / 2.0f;
+
+                    // Regras que impedem o arremesso
+                    bool pode_jogar = true;
+
+                    // 1. não achou chão
+                    if (linha_chao == -1)
+                        pode_jogar = false;
+
+                    // 3. a banana cairia em cima do jogador
+                    if (pode_jogar && fabsf(banana_x - player->position.x) < TAM_TILE)
+                        pode_jogar = false;
+
+                    // Se tudo certo, usa uma banana livre do estoque
+                    if (pode_jogar)
+                    {
+                        for (int i = 0; i < MAX_BANANAS; i++)
+                        {
+                            if (!bananas[i].active)
+                            {
+                                bananas[i].active = true;
+                                bananas[i].lifetime = 8.0f;
+                                // O Y é o topo do chão menos a altura da banana, para ela
+                                // ficar "sentada" em cima da plataforma.
+                                bananas[i].position = (Vector2){banana_x, linha_chao * TAM_TILE - BANANA_ALTURA};
+                                break;
+                            }
+                        }
+                    }
+                }
+
+            // Atualiza cada banana do estoque
+            // continue pula para a próxima banana sem executar o resto do corpo
+            for (int i = 0; i < MAX_BANANAS; i++)
+            {
+                if (!bananas[i].active)
+                    continue;
+
+                // Diminui o tempo de vida da banana
+                bananas[i].lifetime -= time;
+                if (bananas[i].lifetime <= 0.0f)
+                {
+                    bananas[i].active = false;
+                    continue;
+                }
+
+                // A banana está parada, então só precisa checar a colisão com o jogador
+                bananas[i].hitbox = (Rectangle){bananas[i].position.x, bananas[i].position.y, BANANA_LARGURA, BANANA_ALTURA};
+
+                // Ao tocar no jogador a banana some. Se ele estiver atacando (J), ele
+                // destrói a banana e sobrevive; se não, ele morre.
+                if (player->alive && CheckCollisionRecs(player->hitbox, bananas[i].hitbox))
+                {
+                    bananas[i].active = false;
+                    if (player->estado_player != ATTACKING)
+                    {
+                        player->vidas--;
+                        player->position.x = 0;
+                        PlaySound(somMorte);
+                    }
+                }
+            }
+}
+
+int achaChao(char mapa[LINHAS][COLUNAS], int col, int linha_inicial, int max_descida)
+{
+    if (col < 0 || col >= COLUNAS)
+    {
+        return -1;
+    }
+
+    for (int i = linha_inicial; i <= linha_inicial + max_descida && i < LINHAS; i++)
+    {
+        if (i >= 0 && mapa[i][col] == 'Z')
+        {
+            return i;
+        }
+    }
+
+    return -1;
 }

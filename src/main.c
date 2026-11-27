@@ -2,18 +2,8 @@
 #include "settings.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include "raymath.h"
-#include <math.h>
 #include "mecanicas.h"
 #include "placar.h"
-
-// Tamanho de cada frame dentro do ficheiro da imagem original (ex: 256x256 por frame)
-#define FRAME_WIDTH 256.0f
-#define FRAME_HEIGHT 256.0f
-
-// Hitbox da banana
-#define BANANA_LARGURA 10.0f
-#define BANANA_ALTURA 6.0f
 
 int main()
 {
@@ -56,7 +46,9 @@ int main()
         .jump_force = -380.0f,
         .direcao = RIGHT,
         .hitbox = {0.0f},
-        .estado_player = IDLE};
+        .estado_player = IDLE,
+        .vidas = MAX_VIDAS
+    };
 
     Enemy exams[MAX_INIM];
 
@@ -122,6 +114,7 @@ int main()
                 tempo_total = 0.0;
                 inim_qntd = 0;
                 player.alive = true;
+                player.vidas = MAX_VIDAS;
                 player.velocity = (Vector2){0.0f, 0.0f};
                 player.estado_player = IDLE;
                 player.is_grounded = true;
@@ -141,10 +134,14 @@ int main()
             {
                 estado_jogo = PLACAR;
             }
+
             break;
         case GAME:
             if (IsKeyPressed(KEY_TAB))
                 estado_jogo = PAUSE;
+
+            if(!IsMusicStreamPlaying(musiquinhaTeste))
+                PlayMusicStream(musiquinhaTeste);
 
             UpdateMusicStream(musiquinhaTeste);
 
@@ -157,134 +154,13 @@ int main()
                 tempo_fase += delta_time;
                 tempo_total += delta_time;
                 pontuacao -= (delta_time * 50.0f);
-            }
 
-            if (pontuacao < 0.0f)
-                pontuacao = 0.0f;
+                banana_macaco(&monkey, delta_time, &player, bananas, mapa, somMorte);
 
-            // 1. Lógica, Controles e posição do Jogador
-            update_player(&player, settings, jumpSound, delta_time);
-
-            // 2. Lógica e Colisão do Inimigo com o mapa
-            for (int i = 0; i < inim_qntd; i++)
-            {
-                update_inimigo(&exams[i], settings, delta_time, mapa);
-                exams[i].hitbox = (Rectangle){exams[i].position.x, exams[i].position.y, RENDER_SIZE, RENDER_SIZE};
-            }
-
-            // Macaco e bananas
-            if (player.alive)
-            {
-                // Só conta o tempo com o jogador vivo
-                monkey.throw_cooldown -= delta_time;
-
-                if (monkey.throw_cooldown <= 0.0f)
+                // TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
+                for (int i = 0; i < inim_qntd; i++)
                 {
-                    monkey.throw_cooldown = monkey.throw_interval;
-
-                    // Preve onde o jogador vai estar
-                    // Andando: velocidade x tempo = distância que ele percorre em 1,2 s
-                    // Parado: o macaco aposta que ele vai andar para o lado que olha
-                    float frente;
-                    if (player.velocity.x != 0.0f)
-                    {
-                        frente = player.velocity.x * 1.2f;
-                    }
-                    else
-                    {
-                        frente = player.direcao * 3.0f * TAM_TILE;
-                    }
-                    float alvo_x = player.position.x + frente;
-
-                    // Não deixa o alvo sair da tela.
-                    if (alvo_x < 0.0f)
-                        alvo_x = 0.0f;
-                    if (alvo_x > COLUNAS * TAM_TILE - RENDER_SIZE)
-                        alvo_x = COLUNAS * TAM_TILE - RENDER_SIZE;
-
-                    // Converter posição em coluna e linha do mapa
-                    // Dividir por TAM_TILE diz em qual bloquinho estamos
-                    // Usamos o centro do jogador (+ RENDER_SIZE / 2) para evitar erro de borda
-                    int coluna = (int)((alvo_x + RENDER_SIZE / 2.0f) / TAM_TILE);
-                    int linha_jogador = (int)((player.position.y + RENDER_SIZE / 2.0f) / TAM_TILE);
-
-                    // PASSO 3: achar o chão nessa coluna, descendo no máximo 2 linhas.
-                    int linha_chao = achaChao(mapa, coluna, linha_jogador, 2);
-
-                    // Posição X da banana: centralizada dentro do bloquinho
-                    float banana_x = coluna * TAM_TILE + (TAM_TILE - BANANA_LARGURA) / 2.0f;
-
-                    // Regras que impedem o arremesso
-                    bool pode_jogar = true;
-
-                    // 1. não achou chão
-                    if (linha_chao == -1)
-                        pode_jogar = false;
-
-                    // 2. o chão achado é o da plataforma do RU
-                    if (pode_jogar && linha_chao <= ru.linha_ru + 1)
-                        pode_jogar = false;
-
-                    // 3. a banana cairia em cima do jogador
-                    if (pode_jogar && fabsf(banana_x - player.position.x) < TAM_TILE)
-                        pode_jogar = false;
-
-                    // Se tudo certo, usa uma banana livre do estoque
-                    if (pode_jogar)
-                    {
-                        for (int i = 0; i < MAX_BANANAS; i++)
-                        {
-                            if (!bananas[i].active)
-                            {
-                                bananas[i].active = true;
-                                bananas[i].lifetime = 8.0f;
-                                // O Y é o topo do chão menos a altura da banana, para ela
-                                // ficar "sentada" em cima da plataforma.
-                                bananas[i].position = (Vector2){banana_x, linha_chao * TAM_TILE - BANANA_ALTURA};
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Atualiza cada banana do estoque
-            // continue pula para a próxima banana sem executar o resto do corpo
-            for (int i = 0; i < MAX_BANANAS; i++)
-            {
-                if (!bananas[i].active)
-                    continue;
-
-                // Diminui o tempo de vida da banana
-                bananas[i].lifetime -= delta_time;
-                if (bananas[i].lifetime <= 0.0f)
-                {
-                    bananas[i].active = false;
-                    continue;
-                }
-
-                // A banana está parada, então só precisa checar a colisão com o jogador
-                bananas[i].hitbox = (Rectangle){bananas[i].position.x, bananas[i].position.y, BANANA_LARGURA, BANANA_ALTURA};
-
-                // Ao tocar no jogador a banana some. Se ele estiver atacando (J), ele
-                // destrói a banana e sobrevive; se não, ele morre.
-                if (player.alive && CheckCollisionRecs(player.hitbox, bananas[i].hitbox))
-                {
-                    bananas[i].active = false;
-                    if (player.estado_player != ATTACKING)
-                    {
-                        player.alive = false;
-                        PlaySound(somMorte);
-                    }
-                }
-            }
-
-            checa_colisoes(mapa, &player, exams, inim_qntd);
-
-            // TESTA SE O JOGADOR ESTÁ VIVO OU NÃO
-            for (int i = 0; i < inim_qntd; i++)
-            {
-                if (player.alive && CheckCollisionRecs(player.hitbox, exams[i].hitbox))
+                if (CheckCollisionRecs(player.hitbox, exams[i].hitbox))
                 {
                     if (player.estado_player == ATTACKING)
                     {
@@ -294,19 +170,22 @@ int main()
                     }
                     else
                     {
-                        player.alive = false;
+                        player.vidas--;
+                        player.position.x = 0;
                         PlaySound(somMorte);
                     }
                 }
-            }
+                }
 
-            if (player.alive && CheckCollisionRecs(player.hitbox, monkey.hitbox))
-            {
-                player.alive = false;
+                if (CheckCollisionRecs(player.hitbox, monkey.hitbox))
+                {
+                player.vidas--;
+                player.position.x = 0;
+
                 PlaySound(somMorte);
-            }
+                }
 
-            if (player.alive && CheckCollisionRecs(player.hitbox, ru.hitbox))
+                if (CheckCollisionRecs(player.hitbox, ru.hitbox))
             {
                 pontuacao += (float)bonus_tempo(tempo_fase);
                 tempo_fase = 0.0f;
@@ -334,6 +213,29 @@ int main()
                     inim_qntd = 0;
                     posicoes_mapa(&player, exams, &inim_qntd, mapa, &monkey, &ru);
                 }
+            }
+
+            }
+
+            if (pontuacao < 0.0f)
+                pontuacao = 0.0f;
+
+            // 1. Lógica, Controles e posição do Jogador
+            update_player(&player, settings, jumpSound, delta_time);
+
+            // 2. Lógica e Colisão do Inimigo com o mapa
+            for (int i = 0; i < inim_qntd; i++)
+            {
+                update_inimigo(&exams[i], settings, delta_time, mapa);
+                exams[i].hitbox = (Rectangle){exams[i].position.x, exams[i].position.y, RENDER_SIZE, RENDER_SIZE};
+            }
+
+            checa_colisoes(mapa, &player, exams, inim_qntd);
+
+            if (player.vidas == 0){
+                player.alive = false;
+                if(IsKeyPressed(KEY_Q))
+                    estado_jogo = MENU;
             }
 
             // TROCA ESTADO DE ANIMAÇÃO DO JOGADOR
@@ -457,12 +359,16 @@ int main()
 
                 // DESENHA O PLAYER E HITBOX PARA TESTES
                 DrawTexturePro(player_text, player_frame, desenho_player, origem, rotacao, WHITE);
-                DrawRectangleLines((int)player.hitbox.x, (int)player.hitbox.y, (int)player.hitbox.width, (int)player.hitbox.height, GREEN);
+                //DrawRectangleLines((int)player.hitbox.x, (int)player.hitbox.y, (int)player.hitbox.width, (int)player.hitbox.height, GREEN);
             }
             else
             {
-                DrawText("VOCE MORREU! Pressione R para reiniciar", 150, 450, 20, RED);
+                ClearBackground(GRAY);
+                StopMusicStream(musiquinhaTeste);
+                DrawText("GAME OVER! Pressione Q para sair", 300, 450, 20, RED);
             }
+
+            DrawText(TextFormat("VIDAS RESTANTES: %d", player.vidas), 700, 10, 20, RED);
 
             // Desenha o Inimigo
             for (int i = 0; i < inim_qntd; i++)
@@ -480,7 +386,7 @@ int main()
 
                     // DESENHA O INIMIGO E HITBOX PARA TESTES
                     DrawTexturePro(exam_text, exam_frame, desenho_exam, origem, rotacao, WHITE);
-                    DrawRectangleLines((int)exams[i].hitbox.x, (int)exams[i].hitbox.y, (int)exams[i].hitbox.width, (int)exams[i].hitbox.height, RED);
+                    //DrawRectangleLines((int)exams[i].hitbox.x, (int)exams[i].hitbox.y, (int)exams[i].hitbox.width, (int)exams[i].hitbox.height, RED);
                 }
             }
 
@@ -494,7 +400,7 @@ int main()
                 if (bananas[i].active)
                 {
                     DrawEllipse((int)(bananas[i].position.x + BANANA_LARGURA / 2.0f), (int)(bananas[i].position.y + BANANA_ALTURA / 2.0f), 8, 4, YELLOW);
-                    DrawRectangleLines((int)bananas[i].position.x, (int)bananas[i].position.y, (int)BANANA_LARGURA, (int)BANANA_ALTURA, RED);
+                    //DrawRectangleLines((int)bananas[i].position.x, (int)bananas[i].position.y, (int)BANANA_LARGURA, (int)BANANA_ALTURA, RED);
                 }
             }
 

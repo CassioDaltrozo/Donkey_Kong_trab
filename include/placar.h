@@ -4,7 +4,7 @@
 #define MAX_PLACAR 10
 // Ate 19 caracteres + 1 para o '\0' (fim da string)
 #define MAX_NOME 20
-#define ARQUIVO_PLACAR "placar.bin"
+#define ARQUIVO_PLACAR "data/placar.bin"
 #define PONTUACAO_INICIAL 5000.0f
 
 typedef struct tipo_placar
