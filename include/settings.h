@@ -29,6 +29,7 @@ typedef enum GameState
     GAME,
     PAUSE,
     PLACAR,
+    VITORIA,
 } GameState;
 
 typedef enum Direction

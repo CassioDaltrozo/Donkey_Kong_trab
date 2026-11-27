@@ -19,11 +19,14 @@ int main()
 {
     // RENDERIZAÇÃO BÁSICA DO MAPA
     char mapa[LINHAS][COLUNAS], caminho[50];
-    int inim_qntd = 0, fase = 1, qtd_placar = 0;
+    int inim_qntd = 0, fase = 1;
     float pontuacao = PONTUACAO_INICIAL, tempo_fase = 0.0f;
     double tempo_total = 0.0;
 
     // inicializacao do placar
+    int qtd_placar = 0, tam_nome = 0;
+    char nome[MAX_NOME] = "";
+    bool entrou_placar = false;
     TIPO_PLACAR placar[MAX_PLACAR];
     carrega_placar(placar, &qtd_placar);
 
@@ -321,9 +324,10 @@ int main()
 
                 if (carregaMapa(caminho, mapa) == 0)
                 {
-                    // PROVISORIO! MUDAR DPS
-                    printf("VENCEU! Pontos: %.0f | Tempo total: %.1fs\n", pontuacao, tempo_total);
-                    estado_jogo = MENU;
+                    entrou_placar = entra_placar(placar, qtd_placar, (double)pontuacao);
+                    nome[0] = '\0';
+                    tam_nome = 0;
+                    estado_jogo = VITORIA;
                 }
                 else
                 {
@@ -378,6 +382,44 @@ int main()
             {
                 estado_jogo = MENU;
             }
+            break;
+
+        case VITORIA:
+            UpdateMusicStream(musiquinhaMenu);
+
+            int tecla = GetCharPressed();
+            if (entrou_placar == true)
+            {
+                while (tecla > 0)
+                {
+                    if (((tecla >= 'a' && tecla <= 'z') || (tecla >= 'A' && tecla <= 'Z') || (tecla >= '0' && tecla <= '9') || tecla == '_' || tecla == '-') && tam_nome < MAX_NOME - 1)
+                    {
+                        nome[tam_nome] = (char)tecla;
+                        tam_nome++;
+                        nome[tam_nome] = '\0';
+                    }
+                    tecla = GetCharPressed();
+                }
+                if (IsKeyPressed(KEY_BACKSPACE) && tam_nome > 0)
+                {
+                    tam_nome--;
+                    nome[tam_nome] = '\0';
+                }
+                if (IsKeyPressed(KEY_ENTER) && tam_nome > 0)
+                {
+                    inserir_no_placar(placar, &qtd_placar, nome, tempo_total, (double)pontuacao);
+                    salvar_placar(placar);
+                    estado_jogo = PLACAR;
+                }
+            }
+            else if (!entrou_placar)
+            {
+                if (IsKeyPressed(KEY_ENTER))
+                {
+                    estado_jogo = MENU;
+                }
+            }
+
             break;
         }
 
@@ -480,7 +522,27 @@ int main()
             for (i = 0; i < MAX_PLACAR; i++)
             {
                 y = 130 + i * 42;
-                DrawText(TextFormat("%2d. %-15s %6.0f pts  (%.1fs)", i + 1, placar[i].nome, placar[i].pontuacao, placar[i].tempo), 120, y, 24, BLACK);
+                DrawText(TextFormat("%2d. %-19s %6.0f pts  (%.1fs)", i + 1, placar[i].nome, placar[i].pontuacao, placar[i].tempo), 120, y, 24, BLACK);
+            }
+            break;
+
+        case VITORIA:
+            DrawTexture(menu_text, 0.0f, 0.0f, WHITE);
+            DrawRectangle(60, 40, 840, 560, Fade(RAYWHITE, 0.88f));
+            DrawText("PARABENS! VOCE VENCEU!", 200, 80, 24, BLACK);
+            DrawText(TextFormat("PONTUACAO FINAL: %.0f", (double)pontuacao), 200, 140, 24, BLACK);
+            DrawText(TextFormat("TEMPO FINAL: %.1fs", (tempo_total)), 200, 190, 24, BLACK);
+
+            if (entrou_placar)
+            {
+                DrawText("NOVO RECORDE! Digite seu nome (max 19 caracteres, s/ espaco)", 120, 260, 24, BLACK);
+                DrawRectangleLines(80, 305, 500, 50, BLACK);
+                DrawText(TextFormat("%s_", nome), 135, 315, 24, BLACK);
+                DrawText("ENTER para salvar", 80, 380, 24, BLACK);
+            }
+            else
+            {
+                DrawText("Nao entrou no placar. Pressione ENTER para voltar ao menu.", 120, 280, 32, BLACK);
             }
             break;
         }
